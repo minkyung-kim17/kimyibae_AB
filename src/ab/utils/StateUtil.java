@@ -83,12 +83,16 @@ public class StateUtil {
 			
 				e.printStackTrace();
 			}
-		   if(getGameState(proxy) == GameState.WON)
-		   {	
-			   current_score = _getScore(proxy);
-		   }
-		   else
-			   System.out.println(" Unexpected state: PLAYING");
+		  current_score = _getScore(proxy);
+		  if(getGameState(proxy) == GameState.PLAYING) {
+			  System.out.println(" PLAYING score :" + current_score);
+		  }
+//		   if(getGameState(proxy) == GameState.WON)
+//		   {	
+//			   current_score = _getScore(proxy);
+//		   }
+//		   else
+//			   System.out.println(" Unexpected state: PLAYING");
 		}
 		return current_score;
 	}
