@@ -23,8 +23,10 @@ import ab.vision.GameStateExtractor.GameState;
 import ab.vision.Vision;
 //Naive agent (server/client version)
 
-public class ClientNaiveAgent implements Runnable {
+import ab.demo.CSVWrite;
+import ab.demo.InfoClass;
 
+public class ClientNaiveAgent implements Runnable {
 
 	//Wrapper of the communicating messages
 	private ClientActionRobotJava ar;
@@ -99,7 +101,7 @@ public class ClientNaiveAgent implements Runnable {
 	{
 		
 		int[] scores = ar.checkMyScore();
-		System.out.println(" My score: ");
+		System.out.println(" My score: "); //가장 먼저 나오는 print 
 		int level = 1;
 		for(int i: scores)
 		{
@@ -109,7 +111,10 @@ public class ClientNaiveAgent implements Runnable {
 			level ++;
 		}
 	}
-	public void run() {	
+	
+	public void run() {
+		String new_info;
+		
 		byte[] info = ar.configure(ClientActionRobot.intToByteArray(id));
 		solved = new int[info[2]];
 		
@@ -117,16 +122,24 @@ public class ClientNaiveAgent implements Runnable {
 		//Check my score
 		checkMyScore();
 		
-		currentLevel = (byte)getNextLevel(); 
+		currentLevel = (byte)getNextLevel();
+		InfoClass.info_level = (int)currentLevel;
 		ar.loadLevel(currentLevel);
 		//ar.loadLevel((byte)9);
 		GameState state;
 		while (true) {
 			
-			state = solve();
+			state = solve(); //rp랑 ang InfoClass에 더함
+			
+			new_info = String.valueOf(InfoClass.info_level);
+			String save_path = System.getProperty("user.dir");
+			String csvFileName = save_path + "/info.csv";
+			String enc = new java.io.OutputStreamWriter(System.out).getEncoding();
+			CSVWrite.info_add(new_info, csvFileName, enc);
+			
 			//If the level is solved , go to the next level
 			if (state == GameState.WON) {
-							
+				
 				///System.out.println(" loading the level " + (currentLevel + 1) );
 				checkMyScore();
 				System.out.println();
@@ -277,8 +290,11 @@ public class ClientNaiveAgent implements Runnable {
 						double releaseAngle = tp.getReleaseAngle(sling,
 								releasePoint);
 						System.out.println("Release Point: " + releasePoint);
+						InfoClass.info_rp = releasePoint;
+						
 						System.out.println("Release Angle: "
 								+ Math.toDegrees(releaseAngle));
+						InfoClass.info_ang = releaseAngle;
 						int tapInterval = 0;
 						switch (ar.getBirdTypeOnSling()) 
 						{
@@ -356,6 +372,12 @@ public class ClientNaiveAgent implements Runnable {
 			na = new ClientNaiveAgent(args[0]);
 		else
 			na = new ClientNaiveAgent();
+		
+		String save_path = System.getProperty("user.dir");
+		String csvFileName = save_path + "/info.csv";
+		String enc = new java.io.OutputStreamWriter(System.out).getEncoding();
+		CSVWrite.main(csvFileName, enc); // 저장할 정보 column 만들기
+		
 		na.run();
 		
 	}
