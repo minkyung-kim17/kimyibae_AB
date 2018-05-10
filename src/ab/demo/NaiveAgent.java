@@ -224,6 +224,7 @@ public class NaiveAgent implements Runnable {
 						dx = (int)releasePoint.getX() - refPoint.x;
 						dy = (int)releasePoint.getY() - refPoint.y;
 						shot = new Shot(refPoint.x, refPoint.y, dx, dy, 0, tapTime);
+						System.out.println(shot.toString()+shot.getX()+"+"+shot.getDx()+","+shot.getY()+"+"+shot.getDy());
 					}
 					else
 						{
