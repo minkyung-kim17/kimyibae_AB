@@ -263,7 +263,9 @@ public class NaiveAgent implements Runnable {
 					else
 						System.out.println("no sling detected, can not execute the shot, will re-segement the image");
 				}
-
+				
+				int score = StateUtil.getScore(ActionRobot.proxy);
+				System.out.println("during the game state... score : " + score);
 			}
 
 		}

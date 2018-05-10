@@ -90,14 +90,24 @@ public class Vision {
 	} 
 	
 	
+//	public Rectangle findSlingshotMBR()
+//	{
+//		if (visionMBR == null)
+//		{
+//			visionMBR = new VisionMBR(image);
+//		}
+//		return visionMBR.findSlingshotMBR();
+//	}
+	
 	public Rectangle findSlingshotMBR()
 	{
-		if (visionMBR == null)
+		if (visionRealShape == null)
 		{
-			visionMBR = new VisionMBR(image);
+			visionRealShape = new VisionRealShape(image);
 		}
-		return visionMBR.findSlingshotMBR();
+		return visionRealShape.findSling();
 	}
+	
 	public List<Point> findTrajPoints()
 	{
 		if (visionMBR == null)

@@ -17,7 +17,7 @@
 
 
   <target name="jar">
-        <jar destfile="ABSoftware.jar">
+        <jar destfile="ABSoftware_sling_score.jar">
             <manifest>
                 <attribute name="Main-Class" value="org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"/>
                 <attribute name="Rsrc-Main-Class" value="ab.demo.MainEntry"/>
