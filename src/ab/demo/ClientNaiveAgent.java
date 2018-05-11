@@ -9,22 +9,22 @@
 package ab.demo;
 
 import java.awt.Point;
+
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import ab.demo.other.ActionRobot;
 import ab.demo.other.ClientActionRobot;
 import ab.demo.other.ClientActionRobotJava;
 import ab.planner.TrajectoryPlanner;
+import ab.utils.StateUtil;
 import ab.vision.ABObject;
 import ab.vision.GameStateExtractor.GameState;
 import ab.vision.Vision;
 //Naive agent (server/client version)
-
-import ab.demo.CSVWrite;
-import ab.demo.InfoClass;
 
 public class ClientNaiveAgent implements Runnable {
 
@@ -38,6 +38,7 @@ public class ClientNaiveAgent implements Runnable {
 	private boolean firstShot;
 	private Point prevTarget;
 	private Random randomGenerator;
+	
 	/**
 	 * Constructor using the default IP
 	 * */
@@ -113,7 +114,6 @@ public class ClientNaiveAgent implements Runnable {
 	}
 	
 	public void run() {
-		String new_info;
 		
 		byte[] info = ar.configure(ClientActionRobot.intToByteArray(id));
 		solved = new int[info[2]];
@@ -123,19 +123,15 @@ public class ClientNaiveAgent implements Runnable {
 		checkMyScore();
 		
 		currentLevel = (byte)getNextLevel();
-		InfoClass.info_level = (int)currentLevel;
 		ar.loadLevel(currentLevel);
 		//ar.loadLevel((byte)9);
 		GameState state;
-		while (true) {
+		
+		while (true) { // 여기 while 내부 코드가 한번 쏘는거 이고, 게임이 완전히 끝날때 까지 계속 돌아가는 것임.
+			// 그럼 여기서 Array를 하나 만들어서 한번 쏘고 나서 필요한걸 정보들을 list.add를 하고, 
+			// 이 while이 끝나면(혹은 level이 끝나면), 그 Array_set을 csv로 저장하자 !  
 			
-			state = solve(); //rp랑 ang InfoClass에 더함
-			
-			new_info = String.valueOf(InfoClass.info_level);
-			String save_path = System.getProperty("user.dir");
-			String csvFileName = save_path + "/info.csv";
-			String enc = new java.io.OutputStreamWriter(System.out).getEncoding();
-			CSVWrite.info_add(new_info, csvFileName, enc);
+			state = solve();
 			
 			//If the level is solved , go to the next level
 			if (state == GameState.WON) {
@@ -290,11 +286,9 @@ public class ClientNaiveAgent implements Runnable {
 						double releaseAngle = tp.getReleaseAngle(sling,
 								releasePoint);
 						System.out.println("Release Point: " + releasePoint);
-						InfoClass.info_rp = releasePoint;
 						
 						System.out.println("Release Angle: "
 								+ Math.toDegrees(releaseAngle));
-						InfoClass.info_ang = releaseAngle;
 						int tapInterval = 0;
 						switch (ar.getBirdTypeOnSling()) 
 						{
@@ -357,6 +351,9 @@ public class ClientNaiveAgent implements Runnable {
 						System.out.println("no sling detected, can not execute the shot, will re-segement the image");
 				
 			}
+			
+			int score = StateUtil.getScore(ActionRobot.proxy);
+			System.out.println("during the game state... score : " + score);
 		}
 		return state;
 	}
@@ -372,11 +369,6 @@ public class ClientNaiveAgent implements Runnable {
 			na = new ClientNaiveAgent(args[0]);
 		else
 			na = new ClientNaiveAgent();
-		
-		String save_path = System.getProperty("user.dir");
-		String csvFileName = save_path + "/info.csv";
-		String enc = new java.io.OutputStreamWriter(System.out).getEncoding();
-		CSVWrite.main(csvFileName, enc); // 저장할 정보 column 만들기
 		
 		na.run();
 		
