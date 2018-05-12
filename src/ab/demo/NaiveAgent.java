@@ -9,9 +9,11 @@
 package ab.demo;
 
 import java.awt.Point;
+
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,8 @@ import ab.vision.ABObject;
 import ab.vision.GameStateExtractor.GameState;
 import ab.vision.Vision;
 
+import ab.utils.InfoCSV;
+
 public class NaiveAgent implements Runnable {
 
 	private ActionRobot aRobot;
@@ -36,6 +40,13 @@ public class NaiveAgent implements Runnable {
 	private boolean firstShot;
 	private Point prevTarget;
 	// a standalone implementation of the Naive Agent
+	
+	private static ArrayList<ArrayList<String>> info_set_level = new ArrayList<ArrayList<String>>();
+	private static ArrayList<ArrayList<String>> info_set_total = new ArrayList<ArrayList<String>>();
+	private static ArrayList<String> info_oneshot = new ArrayList<String>();
+	private static ArrayList<String> info_pigs_loc = new ArrayList<String>();
+	private ArrayList<String> info_field = new ArrayList<String>(Arrays.asList("Level", "Angle", "Score", "State", "Pigs"));
+	
 	public NaiveAgent() {
 		
 		aRobot = new ActionRobot();
@@ -53,9 +64,23 @@ public class NaiveAgent implements Runnable {
 	public void run() {
 
 		aRobot.loadLevel(currentLevel);
+		System.out.println("\n==========LEVEL " + currentLevel + "==========");
+		
+		String pwd = System.getProperty("user.dir");
+		
+		info_set_level.add(info_field);
+		info_set_total.add(info_field);
+//		info_set_level = InfoCSV.add_info_set_col(info_set_level); //ab.utils.InfoCSV : LEVEL, ANGLE, SCORE, STATE, PIGS 
+//		info_set_total = InfoCSV.add_info_set_col(info_set_total);
+				
 		while (true) {
-			GameState state = solve();
-			if (state == GameState.WON) {
+
+			info_oneshot.add(String.valueOf(currentLevel)); //info_oneshot <- add_info_level
+			
+			GameState state = solve(); //info_oneshot <- add_info_angle, add_info_score, add_info_pigs
+//			InfoCSV.print_info(info_oneshot);
+			
+			if (state == GameState.WON) { // WON 스테이트에 와서 보너스 점수 계산됨				
 				try {
 					Thread.sleep(3000);
 				} catch (InterruptedException e) {
@@ -77,13 +102,67 @@ public class NaiveAgent implements Runnable {
 							+ " Score: " + scores.get(key) + " ");
 				}
 				System.out.println("Total Score: " + totalScore);
+				
+				
+				info_oneshot.add(state.toString());
+				
+//				InfoCSV.print_info(info_oneshot);
+				
+				info_oneshot.set(2,String.valueOf(totalScore)); //최종 점수 반영
+				// info_pigs_loc (x, y, x, y, x, y, ...)
+				//ArrayList에 ArrayList 붙이기
+				info_oneshot.addAll(info_pigs_loc);
+				
+				System.out.println("information_oneshot:");
+				InfoCSV.print_info(info_oneshot);
+				System.out.print("\n");
+				
+				info_set_level.add(info_oneshot); // one csv file per level 
+				info_set_total.add(info_oneshot); // one csv file of all level
+				
+//				InfoCSV.print_infoset(info_set_level);
+				
+				info_oneshot = new ArrayList<String>(); // do not use .clear here
+				info_pigs_loc = new ArrayList<String>();
+				
+				// 게임이 WON 됬을때, 그 level에 대한 정보들을 csv로 출력
+				String filepath_level = pwd+"/info_"+currentLevel+".csv"; 
+				InfoCSV.writecsv(info_set_level, filepath_level);
+				InfoCSV.print_infoset(info_set_level);
+				info_set_level = new ArrayList<ArrayList<String>>();
+				info_set_level.add(info_field);
+				System.out.println(filepath_level);
+				
+				if (currentLevel == 21) {
+					String filepath_total = pwd+"/info.csv";
+					InfoCSV.writecsv(info_set_total, filepath_total);
+				}
+				
 				aRobot.loadLevel(++currentLevel);
+				
+				System.out.println("\n==========LEVEL " + currentLevel + "==========");
+				
 				// make a new trajectory planner whenever a new level is entered
 				tp = new TrajectoryPlanner();
 
 				// first shot on this level, try high shot first
 				firstShot = true;
 			} else if (state == GameState.LOST) {
+				info_oneshot.add(state.toString());
+				info_oneshot.addAll(info_pigs_loc);
+				
+				System.out.println("information_oneshot:");
+				InfoCSV.print_info(info_oneshot);
+				System.out.print("\n");
+				
+				info_set_level.add(info_oneshot); // one csv file per level 
+				info_set_total.add(info_oneshot); // one csv file of all level
+				
+//				InfoCSV.print_infoset(info_set_level);
+				
+				info_oneshot = new ArrayList<String>();
+				info_pigs_loc = new ArrayList<String>();
+				
 				System.out.println("Restart");
 				aRobot.restartLevel();
 			} else if (state == GameState.LEVEL_SELECTION) {
@@ -103,6 +182,22 @@ public class NaiveAgent implements Runnable {
 						+ currentLevel);
 				ActionRobot.GoFromMainMenuToLevelSelection();
 				aRobot.loadLevel(currentLevel);
+			} else if (state == GameState.PLAYING) {
+				info_oneshot.add(state.toString());
+				info_oneshot.addAll(info_pigs_loc);
+				
+				System.out.println("information_oneshot:");
+				InfoCSV.print_info(info_oneshot);
+				System.out.print("\n");
+				
+				info_set_level.add(info_oneshot); // one csv file per level 
+				info_set_total.add(info_oneshot); // one csv file of all level
+
+//				InfoCSV.print_infoset(info_set_level);
+				
+				info_oneshot = new ArrayList<String>();
+				info_pigs_loc = new ArrayList<String>();
+				
 			}
 
 		}
@@ -136,8 +231,14 @@ public class NaiveAgent implements Runnable {
 			vision = new Vision(screenshot);
 			sling = vision.findSlingshotMBR();
 		}
+		
         // get all the pigs
  		List<ABObject> pigs = vision.findPigsMBR();
+ 		for (ABObject pig : pigs) {
+ 			info_pigs_loc.add(Double.toString(pig.getCenterX()));
+ 			info_pigs_loc.add(Double.toString(pig.getCenterY()));
+ 		}
+// 		System.out.println("get pig location");
 
 		GameState state = aRobot.getState();
 
@@ -199,9 +300,10 @@ public class NaiveAgent implements Runnable {
 					if (releasePoint != null) {
 						double releaseAngle = tp.getReleaseAngle(sling,
 								releasePoint);
-						System.out.println("Release Point: " + releasePoint);
-						System.out.println("Release Angle: "
-								+ Math.toDegrees(releaseAngle));
+						info_oneshot.add(Double.toString(releaseAngle));
+//						System.out.println("Release Point: " + releasePoint);
+//						System.out.println("Release Angle: "
+//								+ Math.toDegrees(releaseAngle));
 						int tapInterval = 0;
 						switch (aRobot.getBirdTypeOnSling()) 
 						{
@@ -224,7 +326,7 @@ public class NaiveAgent implements Runnable {
 						dx = (int)releasePoint.getX() - refPoint.x;
 						dy = (int)releasePoint.getY() - refPoint.y;
 						shot = new Shot(refPoint.x, refPoint.y, dx, dy, 0, tapTime);
-						System.out.println(shot.toString()+shot.getX()+"+"+shot.getDx()+","+shot.getY()+"+"+shot.getDy());
+//						System.out.println(shot.toString()+shot.getX()+"+"+shot.getDx()+","+shot.getY()+"+"+shot.getDy());
 					}
 					else
 						{
@@ -255,6 +357,9 @@ public class NaiveAgent implements Runnable {
 									List<Point> traj = vision.findTrajPoints();
 									tp.adjustTrajectory(traj, sling, releasePoint);
 									firstShot = false;
+								} else { //Game state가 playing이 아니어도 nan, nan 더하기 해야함 
+									info_oneshot.add("nan"); //Release angle 대신
+									info_oneshot.add("nan"); //score 대신
 								}
 							}
 						}
@@ -266,10 +371,23 @@ public class NaiveAgent implements Runnable {
 				}
 				
 				int score = StateUtil.getScore(ActionRobot.proxy);
-				System.out.println("during the game state... score : " + score);
+				info_oneshot.add(String.valueOf(score));
+//				System.out.println("during the game state... score : " + score);
+			} else { // pig가 empty : game state가 playing 상태인데, 깨고나서 게임완료가 될때까지 걸리는 시간안에서 들어오게 되는 solve인 케이스
+				info_pigs_loc.add("PigEmpty");
+				info_oneshot.add("nan"); //Release angle 대신
+				info_oneshot.add("nan"); //score 대신
 			}
 
+		} else {
+			info_pigs_loc.add("SlingEmpty");
+			info_oneshot.add("nan"); //Release angle 대신
+			info_oneshot.add("nan"); //score 대신
 		}
+		System.out.println("solved, state: " +state.toString());
+		
+//		GameState state = aRobot.getState();
+		
 		return state;
 	}
 

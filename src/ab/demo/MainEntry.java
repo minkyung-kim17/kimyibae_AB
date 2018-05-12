@@ -25,6 +25,11 @@ public class MainEntry {
 			{
 				NaiveAgent na = new NaiveAgent();
 				na.run();
+				
+//				mkkAgent na = new mkkAgent();
+//				System.out.println("mkkAgent\n");
+//				na.run();
+				
 			}
 			else
 				if(command.equalsIgnoreCase("-cshoot"))
@@ -40,7 +45,7 @@ public class MainEntry {
 					else	
 						if (args.length == 1 && command.equalsIgnoreCase("-nasc"))
 						{
-							ClientNaiveAgent na = new ClientNaiveAgent();
+							ClientNaiveAgent na = new ClientNaiveAgent(); // here
 							na.run();
 						} 
 						else 

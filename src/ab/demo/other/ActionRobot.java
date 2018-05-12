@@ -146,7 +146,8 @@ public class ActionRobot {
 		LinkedList<Shot> shots = new LinkedList<Shot>();
 		shots.add(shot);
 		ss.shoot(proxy, shots);
-		System.out.println("Shooting Completed");
+//		System.out.println("Shooting Completed");
+		System.out.print("Shooting Completed");
 		try {
 			Thread.sleep(10000);
 		} catch (InterruptedException e) {

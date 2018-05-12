@@ -85,7 +85,7 @@ public class StateUtil {
 			}
 		  current_score = _getScore(proxy);
 		  if(getGameState(proxy) == GameState.PLAYING) {
-			  System.out.println(" PLAYING score :" + current_score);
+//			  System.out.println(" PLAYING score :" + current_score);
 		  }
 //		   if(getGameState(proxy) == GameState.WON)
 //		   {	

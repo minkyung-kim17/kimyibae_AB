@@ -24,6 +24,11 @@ import ab.utils.StateUtil;
 import ab.vision.ABObject;
 import ab.vision.GameStateExtractor.GameState;
 import ab.vision.Vision;
+
+import ab.utils.InfoCSV;
+import static ab.utils.InfoCSV.info_set;
+import static ab.utils.InfoCSV.info_oneshot;
+
 //Naive agent (server/client version)
 
 public class ClientNaiveAgent implements Runnable {
@@ -127,14 +132,24 @@ public class ClientNaiveAgent implements Runnable {
 		//ar.loadLevel((byte)9);
 		GameState state;
 		
+		info_set = InfoCSV.add_info_set_col(info_set); // 뽑고자 하는 field명 지정 //ab.utils.InfoCSV
+		String pwd = System.getProperty("user.dir"); 
+		
 		while (true) { // 여기 while 내부 코드가 한번 쏘는거 이고, 게임이 완전히 끝날때 까지 계속 돌아가는 것임.
 			// 그럼 여기서 Array를 하나 만들어서 한번 쏘고 나서 필요한걸 정보들을 list.add를 하고, 
 			// 이 while이 끝나면(혹은 level이 끝나면), 그 Array_set을 csv로 저장하자 !  
 			
 			state = solve();
 			
+			System.out.println(state);
+			
 			//If the level is solved , go to the next level
 			if (state == GameState.WON) {
+				
+				// 게임이 WON 됬을때, 그 level에 대한 정보들을 csv로 출력
+				String filepath = pwd+"/info_"+currentLevel+".csv"; // level을 filepath에 붙이자. 
+				InfoCSV.writecsv(info_set, filepath); 
+				System.out.println(filepath);
 				
 				///System.out.println(" loading the level " + (currentLevel + 1) );
 				checkMyScore();
