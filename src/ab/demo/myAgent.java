@@ -11,7 +11,9 @@ package ab.demo;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,8 @@ import ab.vision.ABType;
 import ab.vision.GameStateExtractor.GameState;
 import ab.vision.Vision;
 
+import ab.utils.InfoCSV;
+
 public class myAgent implements Runnable {
 
 	private ActionRobot aRobot;
@@ -36,7 +40,15 @@ public class myAgent implements Runnable {
 	TrajectoryPlanner tp;
 	private boolean firstShot;
 	private Point prevTarget;
-	public double angle = 0;
+	private double angle = 0; //(level 1성공하는 최소 각도, 대충 0.23 라디안) //0;
+	private double max_angle = Math.PI/3; 
+	
+	// for CSV file
+	private static ArrayList<ArrayList<String>> info_set_level = new ArrayList<ArrayList<String>>();
+	private static ArrayList<ArrayList<String>> info_set_total = new ArrayList<ArrayList<String>>();
+	private static ArrayList<String> info_oneshot = new ArrayList<String>();
+	private static ArrayList<String> info_pigs_loc = new ArrayList<String>();
+	private ArrayList<String> info_field = new ArrayList<String>(Arrays.asList("Level", "Angle", "Score", "State", "Pigs"));
 	
 	// a standalone implementation of the Naive Agent
 	public myAgent() {
@@ -51,14 +63,39 @@ public class myAgent implements Runnable {
 
 	}
 
+	// get current time for debug
+	public static String getCurrentTime(String timeFormat) {
+		return new SimpleDateFormat(timeFormat).format(System.currentTimeMillis());
+	}
 	
 	// run the client
 	public void run() {
 
 		aRobot.loadLevel(currentLevel);
+		System.out.println("\n==========LEVEL " + currentLevel + "==========");
+		
+		String pwd = System.getProperty("user.dir"); // CSV 저장을 위해 현재 폴더 위치 얻기
+		
+		info_set_level.add(info_field);
+		info_set_total.add(info_field);
+		
 		while (true) {
-			GameState state = solve();
-			if (state == GameState.WON) {
+			
+			info_oneshot.add(String.valueOf(currentLevel)); // add_info_level
+
+			GameState state = solve(); // add_info_angle, add_info_score, add_info_pigsLocation
+			
+//			String nowTime = getCurrentTime("mm:ss");
+//			System.out.println(nowTime);
+			
+			// ? 여기서 one-shot 이 성공했을 경우, 이후에 won이 될때까지 어떻게 기다리지?? 
+			// 우선 기록되는 정보를 보자면 다음 샷에서 (angle, score)가 (nan, nan)이어야... 조건이라도 볼거 같은데...
+			// 한 샷을 기다리고 처리를 하기에는 더 복잡해 질것 같은 느낌이.. 
+			// 무식하게 일단 기다려보자 --> solve 안에서			
+			
+			if (state == GameState.WON) { //
+//				String nowTime2 = getCurrentTime("mm:ss");
+//				System.out.println(nowTime2);
 				try {
 					Thread.sleep(3000);
 				} catch (InterruptedException e) {
@@ -80,13 +117,60 @@ public class myAgent implements Runnable {
 							+ " Score: " + scores.get(key) + " ");
 				}
 				System.out.println("Total Score: " + totalScore);
-				aRobot.loadLevel(++currentLevel);
-				// make a new trajectory planner whenever a new level is entered
-				tp = new TrajectoryPlanner();
+				
+				/////////////////////////////////////////////
+				info_oneshot.add(state.toString());
+				info_oneshot.set(2, String.valueOf(totalScore)); // 최종 점수로 갱신, index 위치 "score"위치에 따라 바뀔수 있도록 수정필요
+				info_oneshot.addAll(info_pigs_loc);
+				System.out.println("information_oneshot:");
+				InfoCSV.print_info(info_oneshot);
+				System.out.print("\n");
+				
+				info_set_level.add(info_oneshot);
+				info_set_total.add(info_oneshot);
+				
+				info_oneshot = new ArrayList<String>(); // 다음 shot information 저장을 위해 새 객체 할당
+				info_pigs_loc = new ArrayList<String>();
+				/////////////////////////////////////////////
+				
+				if (angle < max_angle) {
+					state = GameState.PLAYING;
+					aRobot.restartLevel();
+				} else {
+					// 정보 저장
+					String filepath_level = pwd+"/info_"+currentLevel+".csv"; 
+					InfoCSV.writecsv(info_set_level, filepath_level);
+					InfoCSV.print_infoset(info_set_level);
+					info_set_level = new ArrayList<ArrayList<String>>();
+					info_set_level.add(info_field);
+					System.out.println(filepath_level);
+					
+					if (currentLevel == 21) {
+						String filepath_total = pwd+"/info.csv";
+						InfoCSV.writecsv(info_set_total, filepath_total);
+					}
+					
+					// 다음 level 진행
+					aRobot.loadLevel(++currentLevel);
+					System.out.println("\n==========LEVEL " + currentLevel + "==========");
+				
+					// make a new trajectory planner whenever a new level is entered
+					tp = new TrajectoryPlanner();
 
-				// first shot on this level, try high shot first
-				firstShot = true;
+					// first shot on this level, try high shot first
+					firstShot = true;
+				}
 			} else if (state == GameState.LOST) {
+				info_oneshot.add(state.toString());
+				info_oneshot.addAll(info_pigs_loc);
+				System.out.println("information_oneshot:");
+				InfoCSV.print_info(info_oneshot);
+				System.out.print("\n");
+				info_set_level.add(info_oneshot); 
+				info_set_total.add(info_oneshot); 
+				info_oneshot = new ArrayList<String>();
+				info_pigs_loc = new ArrayList<String>();
+				
 				System.out.println("Restart");
 				aRobot.restartLevel();
 			} else if (state == GameState.LEVEL_SELECTION) {
@@ -107,7 +191,20 @@ public class myAgent implements Runnable {
 				ActionRobot.GoFromMainMenuToLevelSelection();
 				aRobot.loadLevel(currentLevel);
 			} else if(state == GameState.PLAYING) {
-				aRobot.restartLevel();
+				info_oneshot.add(state.toString());
+				info_oneshot.addAll(info_pigs_loc);
+				
+				System.out.println("information_oneshot:");
+				InfoCSV.print_info(info_oneshot);
+				System.out.print("\n");
+				
+				info_set_level.add(info_oneshot); 
+				info_set_total.add(info_oneshot); 
+				
+				info_oneshot = new ArrayList<String>();
+				info_pigs_loc = new ArrayList<String>();
+				
+				aRobot.restartLevel(); // 매 첫샷을 봐야하니까... 
 			}
 
 		}
@@ -122,10 +219,10 @@ public class myAgent implements Runnable {
 
 		// process image
 		Vision vision = new Vision(screenshot);
-
+				
 		// find the slingshot
 		Rectangle sling = vision.findSlingshotMBR();
-
+		
 		// confirm the slingshot
 		while (sling == null && aRobot.getState() == GameState.PLAYING) {
 			System.out
@@ -135,84 +232,106 @@ public class myAgent implements Runnable {
 			vision = new Vision(screenshot);
 			sling = vision.findSlingshotMBR();
 		}
-        // get all the pigs
 		
 		Point releasePoint = null;
 		Shot shot = new Shot();
 		int dx = 0;
 		int dy = 0;
+		
+		// get all the pigs
  		List<ABObject> pigs = vision.findPigsMBR();
- 		
-// 		ABObject pig = pigs.get(pigs.size()-1);
- 		
+ 		for (ABObject pig : pigs) { // ABObject pig = pigs.get(pigs.size()-1);
+ 			info_pigs_loc.add(Double.toString(pig.getCenterX()));
+ 			info_pigs_loc.add(Double.toString(pig.getCenterY()));
+ 		} // get pig location
  		
 		GameState state = aRobot.getState();
 		int taptime = 1000;
-
+		
 		// if there is a sling, then play, otherwise just skip.
 		if (sling != null) {
 
 			if (!pigs.isEmpty()) {
 
 				releasePoint = tp.findReleasePoint(sling, angle);
-				if (angle<=Math.PI/4) {
-					angle = angle+Math.PI/360;
+				if (angle<=max_angle) { // 60-degree
+					angle = angle+Math.PI/360; // 0.5-degree
 				}
+				info_oneshot.add(Double.toString(angle));
+//				info_oneshot.add(Double.toString(Math.toDegrees(angle)));
+
+				// 다음으로, 여기에서는 우선 first shot만 보는 거라, random pig selection 안함
 				
-									
-					// Get the reference point
-					Point refPoint = tp.getReferencePoint(sling);
+				// Get the reference point
+				Point refPoint = tp.getReferencePoint(sling);
 
-
-					//Calculate the tapping time according the bird type 
-					if (releasePoint != null) {						ABType type = aRobot.getBirdTypeOnSling();
+				//Calculate the tapping time according the bird type 
+				if (releasePoint != null) {//					ABType type = aRobot.getBirdTypeOnSling(); // 여기서 오류남... 
+					// taptime 1000으로 줬는데, 새마다 학습해야 함
 						
-						dx = (int)releasePoint.getX() - refPoint.x;
-						dy = (int)releasePoint.getY() - refPoint.y;
-						shot = new Shot(refPoint.x, refPoint.y, dx, dy, taptime);
-					}
-					else
-						{
-							System.err.println("No Release Point Found");
-							return state;
-						}
+					dx = (int)releasePoint.getX() - refPoint.x;
+					dy = (int)releasePoint.getY() - refPoint.y;
+					shot = new Shot(refPoint.x, refPoint.y, dx, dy, taptime);
+				} else {
+					System.err.println("No Release Point Found");
+					return state;
 				}
+			}
+			
 
-				// check whether the slingshot is changed. the change of the slingshot indicates a change in the scale.
+			// check whether the slingshot is changed. the change of the slingshot indicates a change in the scale.
+			{
+				ActionRobot.fullyZoomOut();
+				screenshot = ActionRobot.doScreenShot();
+				vision = new Vision(screenshot);
+				Rectangle _sling = vision.findSlingshotMBR();
+				if(_sling != null)
 				{
-					ActionRobot.fullyZoomOut();
-					screenshot = ActionRobot.doScreenShot();
-					vision = new Vision(screenshot);
-					Rectangle _sling = vision.findSlingshotMBR();
-					if(_sling != null)
+					double scale_diff = Math.pow((sling.width - _sling.width),2) +  Math.pow((sling.height - _sling.height),2);	
+					if(scale_diff < 25)
 					{
-						double scale_diff = Math.pow((sling.width - _sling.width),2) +  Math.pow((sling.height - _sling.height),2);
-						if(scale_diff < 25)
+						if(dx < 0)
 						{
-							if(dx < 0)
+							aRobot.cshoot(shot);
+							state = aRobot.getState();								
+							if ( state == GameState.PLAYING )
 							{
-								aRobot.cshoot(shot);
-								state = aRobot.getState();
-								if ( state == GameState.PLAYING )
-								{
-									screenshot = ActionRobot.doScreenShot();
-									vision = new Vision(screenshot);
-									List<Point> traj = vision.findTrajPoints();
-									tp.adjustTrajectory(traj, sling, releasePoint);
-									firstShot = false;
-								}
+								screenshot = ActionRobot.doScreenShot();
+								vision = new Vision(screenshot);
+								List<Point> traj = vision.findTrajPoints();
+								tp.adjustTrajectory(traj, sling, releasePoint);
+								firstShot = false;
 							}
+						} else { // GameState가 playing이 아니어도 (angle, score)에 nan 입력
+							info_oneshot.add("nan");
+							info_oneshot.add("nan");
 						}
-						else
-							System.out.println("Scale is changed, can not execute the shot, will re-segement the image");
 					}
 					else
-						System.out.println("no sling detected, can not execute the shot, will re-segement the image");
-				}				
-				int score = StateUtil.getScore(ActionRobot.proxy);
-				System.out.println("during the game state... score : " + score);
-			}
-
+						System.out.println("Scale is changed, can not execute the shot, will re-segement the image");
+				}
+				else
+					System.out.println("no sling detected, can not execute the shot, will re-segement the image");
+			}				
+			int score = StateUtil.getScore(ActionRobot.proxy);
+			info_oneshot.add(String.valueOf(score));
+//			System.out.println("during the game state... score : " + score); // score는 shot 점수? 
+		} else { //sling을 못찾은 경우, solve 끝내고 game state 확인으로 돌아가게 됨. 
+			info_pigs_loc.add("SlingEmpty");
+			info_oneshot.add("nan");
+			info_oneshot.add("nan");
+		}
+		System.out.println("solved, state: " + state.toString());
+		
+		// won인 state 얻기 위해서, 근데 시간으로 해결할 문제가 아닌듯... 뭔가오류가 생겨서 더 한참 뒤에 won을 얻게 될 수도 있음...
+		// 어차피 한번 쏠때니까, 점수를 보고 state를 얻어야 하나? 
+		// 한 level에서 여러번 쏠때면 신경쓰지 않아도 됨... 
+//		try {
+//			Thread.sleep(10000); //10초는 너무 긴거 같은데... 
+//		} catch (InterruptedException e) {
+//			e.printStackTrace();
+//		}
+		
 		return state;
 	}
 
