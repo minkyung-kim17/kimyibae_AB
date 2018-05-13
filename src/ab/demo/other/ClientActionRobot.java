@@ -277,7 +277,7 @@ public class ClientActionRobot {
 		try {
 			out.write(ClientMessageEncoder.getState());
 			out.flush();
-			// System.out.println("IN READ  " + in.read());
+			 System.out.println("IN READ  " + in.read());
 			return (byte) in.read();
 		} catch (IOException e) {
 			e.printStackTrace();
