@@ -26,10 +26,6 @@ public class MainEntry {
 				myAgent na = new myAgent();
 				na.run();
 				
-//				mkkAgent na = new mkkAgent();
-//				System.out.println("mkkAgent\n");
-//				na.run();
-				
 			}
 			else
 				if(command.equalsIgnoreCase("-cshoot"))
