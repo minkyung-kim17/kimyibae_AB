@@ -88,6 +88,7 @@ public class myAgent implements Runnable {
 			info_oneshot.add(String.valueOf(currentLevel)); // add_info_level
 
 			GameState state = solve(); // add_info_angle, add_info_score, add_info_pigsLocation
+			System.out.println(state);
 			
 //			String nowTime = getCurrentTime("mm:ss");
 //			System.out.println(nowTime);
@@ -97,6 +98,15 @@ public class myAgent implements Runnable {
 			// 한 샷을 기다리고 처리를 하기에는 더 복잡해 질것 같은 느낌이.. 
 			// 무식하게 일단 기다려보자 --> solve 안에서			
 			
+			// GameState 보기... 근데 이렇게 하면... 보너스점수도 고려가 되나??
+			BufferedImage screenshot = ActionRobot.doScreenShot();
+			Vision vision = new Vision(screenshot);
+			List<ABObject> pigs = vision.findPigsMBR();
+			if (pigs.size() == 0) {
+				state = GameState.WON;
+			}
+			
+			System.out.println(state);
 			if (state == GameState.WON) { //
 //				String nowTime2 = getCurrentTime("mm:ss");
 //				System.out.println(nowTime2);
@@ -117,14 +127,15 @@ public class myAgent implements Runnable {
 				for(Integer key: scores.keySet()){
 
 					totalScore += scores.get(key);
-					System.out.println(" Level " + key
-							+ " Score: " + scores.get(key) + " ");
+//					System.out.println(" Level " + key
+//							+ " Score: " + scores.get(key) + " ");
 				}
-				System.out.println("Total Score: " + totalScore);
+//				System.out.println("Total Score: " + totalScore);
 				
 				/////////////////////////////////////////////
 				info_oneshot.add(state.toString());
-				info_oneshot.set(2, String.valueOf(totalScore)); // 최종 점수로 갱신, index 위치 "score"위치에 따라 바뀔수 있도록 수정필요
+//				info_oneshot.set(2, String.valueOf(totalScore)); // 최종 점수로 갱신, index 위치 "score"위치에 따라 바뀔수 있도록 수정필요
+				// 여기가... 
 				info_oneshot.addAll(info_pigs_loc);
 				System.out.println("information_oneshot:");
 				InfoCSV.print_info(info_oneshot);
