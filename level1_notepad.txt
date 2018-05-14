@@ -1219,6 +1219,9 @@ solved, state: PLAYING
 information_oneshot:
 1 1.0471975511965983 0 PLAYING 543.0 296.0
 
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
 Zooming out
 Shooting Completed
 
