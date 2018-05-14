@@ -30,6 +30,7 @@ import ab.vision.Vision;
 
 import ab.utils.InfoCSV;
 
+// º¯°æ 
 public class myAgent implements Runnable {
 
 	private ActionRobot aRobot;
