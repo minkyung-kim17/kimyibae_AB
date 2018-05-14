@@ -39,14 +39,15 @@ public class NaiveAgent implements Runnable {
 	TrajectoryPlanner tp;
 	private boolean firstShot;
 	private Point prevTarget;
-	// a standalone implementation of the Naive Agent
 	
+	// for CSV file
 	private static ArrayList<ArrayList<String>> info_set_level = new ArrayList<ArrayList<String>>();
 	private static ArrayList<ArrayList<String>> info_set_total = new ArrayList<ArrayList<String>>();
 	private static ArrayList<String> info_oneshot = new ArrayList<String>();
 	private static ArrayList<String> info_pigs_loc = new ArrayList<String>();
 	private ArrayList<String> info_field = new ArrayList<String>(Arrays.asList("Level", "Angle", "Score", "State", "Pigs"));
 	
+	// a standalone implementation of the Naive Agent
 	public NaiveAgent() {
 		
 		aRobot = new ActionRobot();
@@ -70,7 +71,7 @@ public class NaiveAgent implements Runnable {
 		
 		info_set_level.add(info_field);
 		info_set_total.add(info_field);
-//		info_set_level = InfoCSV.add_info_set_col(info_set_level); //ab.utils.InfoCSV : LEVEL, ANGLE, SCORE, STATE, PIGS 
+//		info_set_level = InfoCSV.add_info_set_col(info_set_level); //이렇게 하면 여러번 저장됨... 함수랑 private public등을 제대로 못써서 그런듯
 //		info_set_total = InfoCSV.add_info_set_col(info_set_total);
 				
 		while (true) {
@@ -379,7 +380,7 @@ public class NaiveAgent implements Runnable {
 				info_oneshot.add("nan"); //score 대신
 			}
 
-		} else {
+		} else { // sling을 못찾은 경우, solve 끝내고 game state 확인으로 돌아가게 됨. 
 			info_pigs_loc.add("SlingEmpty");
 			info_oneshot.add("nan"); //Release angle 대신
 			info_oneshot.add("nan"); //score 대신

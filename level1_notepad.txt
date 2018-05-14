@@ -1,0 +1,1352 @@
+Microsoft Windows [Version 10.0.16299.431]
+(c) 2017 Microsoft Corporation. All rights reserved.
+
+C:\Users\mkkim>cd Github
+
+C:\Users\mkkim\Github>cd kimyibae_AB
+
+C:\Users\mkkim\Github\kimyibae_AB>ant compile
+Buildfile: C:\Users\mkkim\Github\kimyibae_AB\build.xml
+
+compile:
+    [javac] C:\Users\mkkim\Github\kimyibae_AB\build.xml:15: warning: 'includeantruntime' was not set, defaulting to build.sysclasspath=last; set to false for repeatable builds
+
+BUILD SUCCESSFUL
+Total time: 0 seconds
+
+C:\Users\mkkim\Github\kimyibae_AB>ant jar
+Buildfile: C:\Users\mkkim\Github\kimyibae_AB\build.xml
+
+jar:
+
+BUILD SUCCESSFUL
+Total time: 0 seconds
+
+C:\Users\mkkim\Github\kimyibae_AB>java -jar ABSoftware.jar -na
+Server started on port: 9000
+Waiting for client to connect
+Client connected
+
+==========LEVEL 1==========
+Shooting Completedsolved, state: WON
+ Level 1 Score: 30270
+Total Score: 30270
+information_oneshot:
+1 0.4712388980384694 30270 WON 542.5 295.0
+
+ restart the level
+Zooming out
+Shooting Completedsolved, state: WON
+ Level 1 Score: 30270
+Total Score: 30270
+information_oneshot:
+1 0.47996554429844107 30270 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+scale factor changed to: 1.002995127925538
+solved, state: PLAYING
+information_oneshot:
+1 0.48869219055841273 30070 PLAYING 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completedsolved, state: WON
+ Level 1 Score: 30270
+Total Score: 30270
+information_oneshot:
+1 0.4974188368183844 30270 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+scale factor changed to: 1.0045247438592817
+solved, state: PLAYING
+information_oneshot:
+1 0.506145483078356 27990 PLAYING 542.5 295.0
+
+ restart the level
+Zooming out
+Shooting Completedsolved, state: WON
+ Level 1 Score: 30270
+Total Score: 30270
+information_oneshot:
+1 0.5148721293383277 30270 WON 542.5 295.0
+
+ restart the level
+
+C:\Users\mkkim\Github\kimyibae_AB>ant compile
+Buildfile: C:\Users\mkkim\Github\kimyibae_AB\build.xml
+
+compile:
+    [javac] C:\Users\mkkim\Github\kimyibae_AB\build.xml:15: warning: 'includeantruntime' was not set, defaulting to build.sysclasspath=last; set to false for repeatable builds
+    [javac] Compiling 2 source files to C:\Users\mkkim\Github\kimyibae_AB\src
+
+BUILD SUCCESSFUL
+Total time: 1 second
+
+C:\Users\mkkim\Github\kimyibae_AB>ant jar
+Buildfile: C:\Users\mkkim\Github\kimyibae_AB\build.xml
+
+jar:
+      [jar] Building jar: C:\Users\mkkim\Github\kimyibae_AB\ABSoftware.jar
+
+BUILD SUCCESSFUL
+Total time: 1 second
+
+C:\Users\mkkim\Github\kimyibae_AB>java -jar ABSoftware.jar -na
+Server started on port: 9000
+Waiting for client to connect
+Client connected
+
+==========LEVEL 1==========
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.008726646259971648 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.017453292519943295 0 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.026179938779914945 0 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.03490658503988659 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.04363323129985824 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.05235987755982988 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.06108652381980153 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.06981317007977318 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.07853981633974483 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.08726646259971647 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.09599310885968812 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.10471975511965977 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.11344640137963141 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.12217304763960306 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.1308996938995747 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.13962634015954636 0 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.14835298641951802 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.15707963267948968 900 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.16580627893946134 1050 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.174532925199433 1040 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.18325957145940466 1030 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.19198621771937632 1030 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.20071286397934798 1040 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.20943951023931964 1140 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.2181661564992913 1130 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.22689280275926296 30000 PLAYING 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 31200
+Total Score: 31200
+information_oneshot:
+1 0.23561944901923462 31200 WON 542.5 295.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 31200
+Total Score: 31200
+information_oneshot:
+1 0.24434609527920628 31200 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 31200
+Total Score: 31200
+information_oneshot:
+1 0.2530727415391779 31200 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.2617993877991496 29050 PLAYING 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 31200
+Total Score: 31200
+information_oneshot:
+1 0.27052603405912123 31200 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 31200
+Total Score: 31200
+information_oneshot:
+1 0.2792526803190929 31200 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 31200
+Total Score: 31200
+information_oneshot:
+1 0.28797932657906455 31200 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.2967059728390362 30100 PLAYING 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 31200
+Total Score: 31200
+information_oneshot:
+1 0.3054326190990079 31200 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 31580
+Total Score: 31580
+information_oneshot:
+1 0.31415926535897953 31580 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.3228859116189512 31860 PLAYING 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.33161255787892285 32380 PLAYING 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 32740
+Total Score: 32740
+information_oneshot:
+1 0.3403392041388945 32740 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 34000
+Total Score: 34000
+information_oneshot:
+1 0.3490658503988662 34000 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.35779249665883783 32160 PLAYING 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 34000
+Total Score: 34000
+information_oneshot:
+1 0.3665191429188095 34000 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 34000
+Total Score: 34000
+information_oneshot:
+1 0.37524578917878115 34000 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 34000
+Total Score: 34000
+information_oneshot:
+1 0.3839724354387528 34000 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 34000
+Total Score: 34000
+information_oneshot:
+1 0.3926990816987245 34000 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 34000
+Total Score: 34000
+information_oneshot:
+1 0.40142572795869613 34000 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.4101523742186678 30050 PLAYING 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 34000
+Total Score: 34000
+information_oneshot:
+1 0.41887902047863945 34000 WON 542.5 295.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.4276056667386111 29190 PLAYING 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 34000
+Total Score: 34000
+information_oneshot:
+1 0.43633231299858277 34000 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.005
+solved, state: PLAYING
+information_oneshot:
+1 0.44505895925855443 30400 PLAYING 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.0126342128601606
+solved, state: PLAYING
+information_oneshot:
+1 0.4537856055185261 27820 PLAYING 542.5 295.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9941032725625772
+solved, state: PLAYING
+information_oneshot:
+1 0.46251225177849775 29720 PLAYING 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 34000
+Total Score: 34000
+information_oneshot:
+1 0.4712388980384694 34000 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 34000
+Total Score: 34000
+information_oneshot:
+1 0.47996554429844107 34000 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 1.0097240651583195
+solved, state: PLAYING
+information_oneshot:
+1 0.48869219055841273 30070 PLAYING 542.5 295.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9831686776176821
+solved, state: PLAYING
+information_oneshot:
+1 0.4974188368183844 29500 PLAYING 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9956052048120974
+solved, state: PLAYING
+information_oneshot:
+1 0.506145483078356 27990 PLAYING 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 34000
+Total Score: 34000
+information_oneshot:
+1 0.5148721293383277 34000 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9903798886464272
+solved, state: PLAYING
+information_oneshot:
+1 0.5235987755982994 28280 PLAYING 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9846032127749047
+solved, state: PLAYING
+information_oneshot:
+1 0.532325421858271 29000 PLAYING 542.5 295.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9840299568171391
+solved, state: PLAYING
+information_oneshot:
+1 0.5410520681182427 8930 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9848853296163527
+solved, state: PLAYING
+information_oneshot:
+1 0.5497787143782144 8940 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.987688030870892
+solved, state: PLAYING
+information_oneshot:
+1 0.558505360638186 29270 PLAYING 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9881773216911733
+solved, state: PLAYING
+information_oneshot:
+1 0.5672320068981577 3380 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+solved, state: WON
+ Level 1 Score: 34000
+Total Score: 34000
+information_oneshot:
+1 0.5759586531581293 34000 WON 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9881773216911733
+solved, state: PLAYING
+information_oneshot:
+1 0.584685299418101 8170 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9786570866965445
+solved, state: PLAYING
+information_oneshot:
+1 0.5934119456780726 28970 PLAYING 543.0 296.0
+
+ restart the level
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9786570866965445
+solved, state: PLAYING
+information_oneshot:
+1 0.6021385919380443 2520 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.610865238198016 8950 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.6195918844579876 3490 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.6283185307179593 3740 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.637045176977931 1800 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.6457718232379026 1240 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.6544984694978743 1240 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.6632251157578459 900 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.6719517620178176 1270 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.6806784082777892 900 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.6894050545377609 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.6981317007977326 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.7068583470577042 0 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.7155849933176759 0 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.7243116395776475 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.7330382858376192 0 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.7417649320975909 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.7504915783575625 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.7592182246175342 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.7679448708775058 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.7766715171374775 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.7853981633974492 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.7941248096574208 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.8028514559173925 0 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.8115781021773641 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.8203047484373358 0 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.8290313946973075 0 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.8377580409572791 0 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.8464846872172508 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.8552113334772224 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.8639379797371941 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.8726646259971658 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.8813912722571374 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.8901179185171091 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.8988445647770807 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.9075712110370524 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.9162978572970241 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.9250245035569957 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.9337511498169674 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.942477796076939 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.9512044423369107 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.9599310885968824 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.968657734856854 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.9773843811168257 0 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.9861110273767973 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 0.994837673636769 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 1.0035643198967406 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 1.012290966156712 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 1.0210176124166837 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9746361326911364
+solved, state: PLAYING
+information_oneshot:
+1 1.0297442586766552 0 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9010126244604998
+solved, state: PLAYING
+information_oneshot:
+1 1.0384709049366267 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9010126244604998
+solved, state: PLAYING
+information_oneshot:
+1 1.0471975511965983 0 PLAYING 543.0 296.0
+
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9110228767055579
+solved, state: PLAYING
+information_oneshot:
+1 1.0471975511965983 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9023370098915504
+solved, state: PLAYING
+information_oneshot:
+1 1.0471975511965983 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9052861039047184
+solved, state: PLAYING
+information_oneshot:
+1 1.0471975511965983 0 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9047038770794392
+solved, state: PLAYING
+information_oneshot:
+1 1.0471975511965983 0 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9039937960851343
+solved, state: PLAYING
+information_oneshot:
+1 1.0471975511965983 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9139683972001091
+solved, state: PLAYING
+information_oneshot:
+1 1.0471975511965983 0 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9120727966923402
+solved, state: PLAYING
+information_oneshot:
+1 1.0471975511965983 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9191491296320319
+solved, state: PLAYING
+information_oneshot:
+1 1.0471975511965983 0 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9133943411711106
+solved, state: PLAYING
+information_oneshot:
+1 1.0471975511965983 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.903720939760668
+solved, state: PLAYING
+information_oneshot:
+1 1.0471975511965983 0 PLAYING 542.5 295.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9144986815471275
+solved, state: PLAYING
+information_oneshot:
+1 1.0471975511965983 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9048716470588906
+solved, state: PLAYING
+information_oneshot:
+1 1.0471975511965983 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9048716470588906
+solved, state: PLAYING
+information_oneshot:
+1 1.0471975511965983 0 PLAYING 543.0 296.0
+
+Zooming out
+Shooting Completed
+
+
+scale factor changed to: 0.9048716470588906
+solved, state: PLAYING
+information_oneshot:
+1 1.0471975511965983 0 PLAYING 542.5 295.0
+
+
+C:\Users\mkkim\Github\kimyibae_AB>

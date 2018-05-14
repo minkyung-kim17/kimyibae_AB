@@ -116,6 +116,7 @@ public class ActionRobot {
 		ShootingSchema ss = new ShootingSchema();
 		ss.shoot(proxy, csc);
 		System.out.println("Shooting Completed");
+		System.out.println("\n");
 		GameState state = StateUtil.getGameState(proxy);
 		return state;
 
@@ -133,6 +134,7 @@ public class ActionRobot {
 		System.out.println("Shooting Completed");
 		System.out
 				.println("wait 15 seconds to ensure all objects in the scene static");
+		System.out.print("\n");
 		try {
 			Thread.sleep(15000);
 		} catch (InterruptedException e) {
@@ -146,8 +148,8 @@ public class ActionRobot {
 		LinkedList<Shot> shots = new LinkedList<Shot>();
 		shots.add(shot);
 		ss.shoot(proxy, shots);
-//		System.out.println("Shooting Completed");
-		System.out.print("Shooting Completed");
+		System.out.println("Shooting Completed");
+		System.out.print("\n");
 		try {
 			Thread.sleep(10000);
 		} catch (InterruptedException e) {
@@ -170,6 +172,7 @@ public class ActionRobot {
 		ss.shoot(proxy, shots);
 		// System.out.println(" tap time : " + shot.getT_tap());
 		System.out.println("Shooting Completed");
+		System.out.print("\n");
 
 	}
 

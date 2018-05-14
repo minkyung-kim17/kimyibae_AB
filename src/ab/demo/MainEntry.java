@@ -41,20 +41,23 @@ public class MainEntry {
 					else	
 						if (args.length == 1 && command.equalsIgnoreCase("-nasc"))
 						{
-							ClientNaiveAgent na = new ClientNaiveAgent(); // here
+//							ClientNaiveAgent na = new ClientNaiveAgent(); // here
+							myClientAgent na = new myClientAgent();
 							na.run();
 						} 
 						else 
 							if (args.length == 2 && command.equalsIgnoreCase("-nasc"))
 							{
-								ClientNaiveAgent na = new ClientNaiveAgent(args[1]);
+//								ClientNaiveAgent na = new ClientNaiveAgent(args[1]);
+								myClientAgent na = new myClientAgent();
 								na.run();
 							}
 							else
 								if(args.length == 3 && command.equalsIgnoreCase("-nasc"))
 								{
 									int id = Integer.parseInt(args[2]);
-									ClientNaiveAgent na = new ClientNaiveAgent(args[1],id);
+//									ClientNaiveAgent na = new ClientNaiveAgent(args[1],id);
+									myClientAgent na = new myClientAgent();
 									na.run();
 								}
 
