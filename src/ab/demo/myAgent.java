@@ -88,7 +88,7 @@ public class myAgent implements Runnable {
 			info_oneshot.add(String.valueOf(currentLevel)); // add_info_level
 
 			GameState state = solve(); // add_info_angle, add_info_score, add_info_pigsLocation
-			System.out.println(state);
+//			System.out.println(state);
 			
 //			String nowTime = getCurrentTime("mm:ss");
 //			System.out.println(nowTime);
@@ -99,12 +99,13 @@ public class myAgent implements Runnable {
 			// 무식하게 일단 기다려보자 --> solve 안에서			
 			
 			// GameState 보기... 근데 이렇게 하면... 보너스점수도 고려가 되나??
-			BufferedImage screenshot = ActionRobot.doScreenShot();
-			Vision vision = new Vision(screenshot);
-			List<ABObject> pigs = vision.findPigsMBR();
-			if (pigs.size() == 0) {
-				state = GameState.WON;
-			}
+//			BufferedImage screenshot = ActionRobot.doScreenShot();
+//			Vision vision = new Vision(screenshot);
+//			List<ABObject> pigs = vision.findPigsMBR();
+			
+//			if (pigs.size() == 0) {
+//				state = GameState.WON;
+//			}
 			
 			System.out.println(state);
 			if (state == GameState.WON) { //
@@ -354,15 +355,31 @@ public class myAgent implements Runnable {
 				}
 				else
 					System.out.println("no sling detected, can not execute the shot, will re-segement the image");
-			}				
-			int score = StateUtil.getScore(ActionRobot.proxy);
+			}		
+			//sleep, 점수 안정화하려고 
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			int score = StateUtil.getScore(ActionRobot.proxy); 
 			info_oneshot.add(String.valueOf(score));
 //			System.out.println("during the game state... score : " + score); // score는 shot 점수? 
-		} else { //sling을 못찾은 경우, solve 끝내고 game state 확인으로 돌아가게 됨. 
-			info_pigs_loc.add("SlingEmpty");
-			info_oneshot.add("nan");
-			info_oneshot.add("nan");
-		}
+		} //else { //sling을 못찾은 경우, solve 끝내고 game state 확인으로 돌아가게 됨. 
+//			info_pigs_loc.add("SlingEmpty");
+//			info_oneshot.add("nan");
+//			info_oneshot.add("nan");
+		
+		// 여기 수정해야 해요ㅠ.ㅠ 	
+//		if() {	// 여기서 새가 안올라간 슬링 찾기!!, ? 근데 남은 새?로 해도 되는거 아닐까여... 새는 안찾나??.. 
+//			while(true) {
+//				if (aRobot.getState()==GameState.LOST || aRobot.getState()==GameState.WON) {
+//					break;
+//				}
+//			}
+//		}
+			
+//		}
 		System.out.println("solved, state: " + state.toString());
 		
 		// won인 state 얻기 위해서, 근데 시간으로 해결할 문제가 아닌듯... 뭔가오류가 생겨서 더 한참 뒤에 won을 얻게 될 수도 있음...
@@ -373,6 +390,8 @@ public class myAgent implements Runnable {
 //		} catch (InterruptedException e) {
 //			e.printStackTrace();
 //		}
+		
+		//돼지 확인하고, 기다렸다가 state 얻기로 
 		
 		return state;
 	}
