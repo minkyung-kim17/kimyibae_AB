@@ -42,6 +42,9 @@ public class myAgent implements Runnable {
 	private Point prevTarget;
 	private double angle = 0; //(level 1성공하는 최소 각도, 대충 0.23 라디안) //0;
 	private double max_angle = Math.PI/3; 
+	// pi/3이었을때, 1.0471975511965983 이 각도에서 못넘어가고 계속 걸림... 
+	// 밑에 game state들을 다 고려안해서 그런것임.. 
+	// 그래서 저장을 못함..ㅠ.ㅠ
 	
 	// for CSV file
 	private static ArrayList<ArrayList<String>> info_set_level = new ArrayList<ArrayList<String>>();
@@ -134,7 +137,7 @@ public class myAgent implements Runnable {
 				/////////////////////////////////////////////
 				
 				if (angle < max_angle) {
-					state = GameState.PLAYING;
+					state = GameState.PLAYING; // ?
 					aRobot.restartLevel();
 				} else {
 					// 정보 저장
@@ -153,7 +156,8 @@ public class myAgent implements Runnable {
 					// 다음 level 진행
 					aRobot.loadLevel(++currentLevel);
 					System.out.println("\n==========LEVEL " + currentLevel + "==========");
-				
+					angle = 0;
+					
 					// make a new trajectory planner whenever a new level is entered
 					tp = new TrajectoryPlanner();
 
@@ -204,7 +208,32 @@ public class myAgent implements Runnable {
 				info_oneshot = new ArrayList<String>();
 				info_pigs_loc = new ArrayList<String>();
 				
-				aRobot.restartLevel(); // 매 첫샷을 봐야하니까... 
+				if (angle < max_angle) {
+					aRobot.restartLevel();
+				} else { // Playing 상태일때도 angle이 max보다 커지먼, restart 그만 둬야함...
+					String filepath_level = pwd+"/info_"+currentLevel+".csv"; 
+					InfoCSV.writecsv(info_set_level, filepath_level);
+					InfoCSV.print_infoset(info_set_level);
+					info_set_level = new ArrayList<ArrayList<String>>();
+					info_set_level.add(info_field);
+					System.out.println(filepath_level);
+					
+					if (currentLevel == 21) {
+						String filepath_total = pwd+"/info.csv";
+						InfoCSV.writecsv(info_set_total, filepath_total);
+					}
+					
+					// 다음 level 진행
+					aRobot.loadLevel(++currentLevel);
+					System.out.println("\n==========LEVEL " + currentLevel + "==========");
+					angle = 0;
+					
+					// make a new trajectory planner whenever a new level is entered
+					tp = new TrajectoryPlanner();
+
+					// first shot on this level, try high shot first
+					firstShot = true;
+				}
 			}
 
 		}
@@ -256,6 +285,7 @@ public class myAgent implements Runnable {
 				releasePoint = tp.findReleasePoint(sling, angle);
 				if (angle<=max_angle) { // 60-degree
 					angle = angle+Math.PI/360; // 0.5-degree
+//					angle = angle+Math.PI/180;
 				}
 				info_oneshot.add(Double.toString(angle));
 //				info_oneshot.add(Double.toString(Math.toDegrees(angle)));
