@@ -405,8 +405,9 @@ public class myAgent_continue implements Runnable {
 //					}
 //				}
 //			}
-
-			System.out.println("sizeofbirds: "+ sizeofbirds+" || shotNumber: " +(shotNumber-1));
+			
+			System.out.println("Shot angle: "+Math.toDegrees(angle)+
+					" || sizeofbirds: "+ sizeofbirds+" || shotNumber: " +(shotNumber-1));
 			
 			if(sizeofbirds==shotNumber-1) { // 그 level에서 shoot을 다함
 				while(true) {
