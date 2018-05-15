@@ -81,6 +81,16 @@ public class ActionRobot {
 		rls.restartLevel();
 	}
 
+	public static void RemoveSideMenu() {
+		System.out.println("Remove the Side Memu");
+		proxy.send(new ProxyClickMessage(420, 240));
+		try {
+			Thread.sleep(1500);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public static void GoFromMainMenuToLevelSelection() {
 		// --- go from the main menu to the episode menu
 		GameState state = StateUtil.getGameState(proxy);
