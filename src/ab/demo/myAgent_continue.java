@@ -44,18 +44,18 @@ public class myAgent_continue implements Runnable {
 	TrajectoryPlanner tp;
 	private int shotNumber = 1;
 	private int sizeofbirds = 0;
-	private double min_angle = 0;
+	private double min_angle = 0.174533; //10도 //0;
 	private double angle = min_angle; //(level 1성공하는 최소 각도, 대충 0.23 라디안) for test
-	private double max_angle = Math.PI/2;
+	private double max_angle = 0.226893; //13도 Math.PI/2;
 	
 	private int max_pig = 9;
 	
 	// for CSV file
-	private static ArrayList<ArrayList<String>> info_set_level = new ArrayList<ArrayList<String>>();
-	private static ArrayList<ArrayList<String>> info_set_total = new ArrayList<ArrayList<String>>();
-	private static ArrayList<String> info_oneshot = new ArrayList<String>();
-	private static ArrayList<String> info_pigs_loc = new ArrayList<String>();
-	private static ArrayList<String> info_obs_loc = new ArrayList<String>();
+//	private static ArrayList<ArrayList<String>> info_set_level = new ArrayList<ArrayList<String>>();
+//	private static ArrayList<ArrayList<String>> info_set_total = new ArrayList<ArrayList<String>>();
+//	private static ArrayList<String> info_oneshot = new ArrayList<String>();
+//	private static ArrayList<String> info_pigs_loc = new ArrayList<String>();
+//	private static ArrayList<String> info_obs_loc = new ArrayList<String>();
 	private ArrayList<String> info_field = new ArrayList<String>
 	(Arrays.asList("Level", "ShotNum", "Angle", "TapTime", "BirdType", "ImageNmae", "Score", "State", "Pigs", "Obstacle"));
 	
@@ -78,21 +78,29 @@ public class myAgent_continue implements Runnable {
 	
 	// run the client
 	public void run() {
-
+		
+		ArrayList<ArrayList<String>> info_set_level = new ArrayList<ArrayList<String>>();
+		ArrayList<ArrayList<String>> info_set_total = new ArrayList<ArrayList<String>>();
+		info_set_level.add(info_field); //CSV 출력을 위해 각 column name 저장
+		info_set_total.add(info_field);
+		
 		aRobot.loadLevel(currentLevel);
 		System.out.println("\n==========LEVEL " + currentLevel + "==========");
 		
 		String pwd = System.getProperty("user.dir"); // CSV 저장을 위한 현재 폴더 위치 얻기
 		
-		info_set_level.add(info_field);
-		info_set_total.add(info_field);
+		
 		
 		while (true) {
+			
+			ArrayList<String> info_oneshot = new ArrayList<String>(); // 새 객체 할당, 사용후 null으로 해제 
+			ArrayList<String> info_pigs_loc = new ArrayList<String>(); // 새 객체 할당
+			ArrayList<String> info_obs_loc = new ArrayList<String>(); // 새 객체 할당
 			
 			info_oneshot.add(String.valueOf(currentLevel)); 
 			info_oneshot.add(String.valueOf(shotNumber)); 
 
-			GameState state = solve(); 					
+			GameState state = solve(info_oneshot, info_pigs_loc, info_obs_loc); 					
 			System.out.println("One shot solved; current state is "+state);
 			
 			if (state == GameState.WON||state == GameState.LOST||state == GameState.PLAYING) {
@@ -107,11 +115,10 @@ public class myAgent_continue implements Runnable {
 				info_set_level.add(info_oneshot);
 				info_set_total.add(info_oneshot);
 				
-				// 다음 shot information 저장을 위해 새 객체 할당
-				// 이렇게 절대 하지 말라고 하는데... 두 함수에 거쳐서 정보를 저장해야해서... 어떻게 개선하면 좋을지 잘 모르겠음... 
-				info_oneshot = new ArrayList<String>(); 
-				info_pigs_loc = new ArrayList<String>();
-				info_obs_loc = new ArrayList<String>();
+				// 쓰고 난 객체 해제... 우선 null로 처리... 
+				info_oneshot = null; //new ArrayList<String>(); 
+				info_pigs_loc = null; //new ArrayList<String>();
+				info_obs_loc = null; //new ArrayList<String>();
 			}
 			if (state == GameState.WON) { 
 				try {
@@ -150,6 +157,7 @@ public class myAgent_continue implements Runnable {
 					System.out.println("CSV Save: " + filepath_level);
 					
 					// 여기도 새 객체... 할당... 컴터에게 못할짓... ㅠ.ㅠ 
+					info_set_level = null;
 					info_set_level = new ArrayList<ArrayList<String>>();
 					info_set_level.add(info_field);
 					
@@ -184,6 +192,7 @@ public class myAgent_continue implements Runnable {
 					System.out.println("CSV Save: " + filepath_level);
 					
 					// 여기도 새 객체... 할당... 컴터에게 못할짓... ㅠ.ㅠ 
+					info_set_level = null;
 					info_set_level = new ArrayList<ArrayList<String>>();
 					info_set_level.add(info_field);
 					
@@ -230,8 +239,8 @@ public class myAgent_continue implements Runnable {
 
 		} // while(true) 괄호
 	} // public run() 괄호
-
-	public GameState solve()
+	
+	public GameState solve(ArrayList<String> info_oneshot, ArrayList<String> info_pigs_loc, ArrayList<String> info_obs_loc)
 	{
 		// Remove side menu for sizeofbirds/ screenshot
 		ActionRobot.RemoveSideMenu(); // 화면 중앙을 클릭해서 sidemenu를 없앰
@@ -313,7 +322,7 @@ public class myAgent_continue implements Runnable {
 				Point refPoint = tp.getReferencePoint(sling);
 
 				//Calculate the tapping time according the bird type 
-				if (releasePoint != null) {					ABType type = aRobot.getBirdTypeOnSling(); 
+				if (releasePoint != null) {					ABType type = aRobot.getBirdTypeOnSling(); //unknown인 애가 뜰때도 있음.... ㅜ.ㅜ 뭐지
 					info_oneshot.add(String.valueOf(taptime));
 					info_oneshot.add(type.toString());
 					// tap-time 1000으로 줬는데, 새마다 학습해야 함
@@ -381,6 +390,9 @@ public class myAgent_continue implements Runnable {
 			}
 			int score =0;
 			
+			System.out.println("Shot angle: "+Math.toDegrees(angle)+
+					" || sizeofbirds: "+ sizeofbirds+" || shotNumber: " +(shotNumber-1));
+			
 			// 돼지가 없는지 확인 (돼지가 없으면 WON을 기다리면 됨)
 			pigs = vision.findPigsMBR(); // state에서 shoot을 하고나면 pig의 상태는 바로 반영이 되나??  
 			if(pigs.isEmpty()) { 
@@ -406,13 +418,10 @@ public class myAgent_continue implements Runnable {
 //				}
 //			}
 			
-			System.out.println("Shot angle: "+Math.toDegrees(angle)+
-					" || sizeofbirds: "+ sizeofbirds+" || shotNumber: " +(shotNumber-1));
-			
 			if(sizeofbirds==shotNumber-1) { // 그 level에서 shoot을 다함
 				while(true) {
 					int temp = StateUtil.getScore(ActionRobot.proxy);
-					if (temp>=score) {
+					if (temp>score) { // 0보다 큰 마지막 점수를 받아오도록
 						score = temp;
 					}
 					if (aRobot.getState()==GameState.LOST) {
