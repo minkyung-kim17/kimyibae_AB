@@ -40,14 +40,13 @@ public class myAgent_continue implements Runnable {
 	private Random randomGenerator;
 	public int currentLevel = 1;
 	public static int time_limit = 12;
-	private Map<Integer,Integer> scores = new LinkedHashMap<Integer,Integer>();
+//	private Map<Integer,Integer> scores = new LinkedHashMap<Integer,Integer>();
 	TrajectoryPlanner tp;
 	private int shotNumber = 1;
 	private int sizeofbirds = 0;
 	private double min_angle = 0.174533; //10도 //0;
 	private double angle = min_angle; //(level 1성공하는 최소 각도, 대충 0.23 라디안) for test
 	private double max_angle = 0.226893; //13도 Math.PI/2;
-	
 	private int max_pig = 9;
 	
 	// for CSV file
@@ -119,6 +118,41 @@ public class myAgent_continue implements Runnable {
 				info_oneshot = null; //new ArrayList<String>(); 
 				info_pigs_loc = null; //new ArrayList<String>();
 				info_obs_loc = null; //new ArrayList<String>();
+				
+				if(state == GameState.WON||state == GameState.LOST) {
+					if (angle < max_angle) { //이겼을때도 계속해서 0.5도씩 증가시키며 실행
+						aRobot.restartLevel();
+						angle += Math.PI/360;
+
+					} else { // 이기고 앵글테스트도 끝나면 다음 레벨로
+						// CSV 출력
+						String filepath_level = pwd+"/info_"+currentLevel+".csv"; 
+						InfoCSV.writecsv(info_set_level, filepath_level);
+						
+						InfoCSV.print_infoset(info_set_level);
+						System.out.println("CSV Save: " + filepath_level);
+						
+						// 여기도 새 객체... 할당... 컴터에게 못할짓... ㅠ.ㅠ 
+						info_set_level = null;
+						info_set_level = new ArrayList<ArrayList<String>>();
+						info_set_level.add(info_field);
+						
+						if (currentLevel == 21) {
+							String filepath_total = pwd+"/info.csv";
+							InfoCSV.writecsv(info_set_total, filepath_total);
+							return;
+						}
+						
+						// Go to the next level
+						aRobot.loadLevel(++currentLevel);
+						System.out.println("\n==========LEVEL " + currentLevel + "==========");
+						angle = min_angle;
+
+						// make a new trajectory planner whenever a new level is entered
+						tp = new TrajectoryPlanner();
+					}
+					shotNumber = 1;
+				}				
 			}
 			if (state == GameState.WON) { 
 				try {
@@ -126,91 +160,25 @@ public class myAgent_continue implements Runnable {
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
-				
-				int score = StateUtil.getScore(ActionRobot.proxy); // WON한 상태에서 accumulated score
-				if(!scores.containsKey(currentLevel)) // scores에 최고 점수 갱신
-					scores.put(currentLevel, score);
-				else
-				{
-					if(scores.get(currentLevel) < score)
-						scores.put(currentLevel, score);
-				}
-				
-				int totalScore = 0;
-				for(Integer key: scores.keySet()){
-					totalScore += scores.get(key);
-//					System.out.println(" Level " + key
-//							+ " Score: " + scores.get(key) + " ");
-				}
-//				System.out.println("Total Score: " + totalScore);
-				
-				if (angle < max_angle) { //이겼을때도 계속해서 0.5도씩 증가시키며 실행
-					aRobot.restartLevel();
-					angle += Math.PI/360;
-
-				} else { // 이기고 앵글테스트도 끝나면 다음 레벨로
-					// CSV 출력
-					String filepath_level = pwd+"/info_"+currentLevel+".csv"; 
-					InfoCSV.writecsv(info_set_level, filepath_level);
-					
-					InfoCSV.print_infoset(info_set_level);
-					System.out.println("CSV Save: " + filepath_level);
-					
-					// 여기도 새 객체... 할당... 컴터에게 못할짓... ㅠ.ㅠ 
-					info_set_level = null;
-					info_set_level = new ArrayList<ArrayList<String>>();
-					info_set_level.add(info_field);
-					
-					if (currentLevel == 21) {
-						String filepath_total = pwd+"/info.csv";
-						InfoCSV.writecsv(info_set_total, filepath_total);
-						return;
-					}
-					
-					// Go to the next level
-					aRobot.loadLevel(++currentLevel);
-					System.out.println("\n==========LEVEL " + currentLevel + "==========");
-					angle = min_angle;
-
-					// make a new trajectory planner whenever a new level is entered
-					tp = new TrajectoryPlanner();
-				}
-				shotNumber = 1;
+//				
+//				int score = StateUtil.getScore(ActionRobot.proxy); // WON한 상태에서 accumulated score
+//				if(!scores.containsKey(currentLevel)) // scores에 최고 점수 갱신
+//					scores.put(currentLevel, score);
+//				else
+//				{
+//					if(scores.get(currentLevel) < score)
+//						scores.put(currentLevel, score);
+//				}
+//				
+//				int totalScore = 0;
+//				for(Integer key: scores.keySet()){
+//					totalScore += scores.get(key);
+////					System.out.println(" Level " + key
+////							+ " Score: " + scores.get(key) + " ");
+//				}
+////				System.out.println("Total Score: " + totalScore);
 				
 			} else if (state == GameState.LOST) {
-				
-				if (angle < max_angle) { //졌을때도 계속해서 0.5도씩 증가시키며 실행
-					System.out.println("Lost and Restart");
-					aRobot.restartLevel();
-					angle += Math.PI/360;
-				} else { // 졌지만, 이 레벨에서 정한 각도로 다 쏴봤으면 CSV로 파일 저장
-					// CSV 출력
-					String filepath_level = pwd+"/info_"+currentLevel+".csv"; 
-					InfoCSV.writecsv(info_set_level, filepath_level);
-					
-					InfoCSV.print_infoset(info_set_level);
-					System.out.println("CSV Save: " + filepath_level);
-					
-					// 여기도 새 객체... 할당... 컴터에게 못할짓... ㅠ.ㅠ 
-					info_set_level = null;
-					info_set_level = new ArrayList<ArrayList<String>>();
-					info_set_level.add(info_field);
-					
-					if (currentLevel == 21) {
-						String filepath_total = pwd+"/info.csv";
-						InfoCSV.writecsv(info_set_total, filepath_total);
-						return;
-					}
-					
-					// Go to the next level
-					aRobot.loadLevel(++currentLevel);
-					System.out.println("\n==========LEVEL " + currentLevel + "==========");
-					angle = min_angle;
-					
-					// make a new trajectory planner whenever a new level is entered
-					tp = new TrajectoryPlanner();
-				}
-				shotNumber = 1;
 
 			} else if (state == GameState.LEVEL_SELECTION) {
 				System.out
@@ -233,8 +201,7 @@ public class myAgent_continue implements Runnable {
 				aRobot.loadLevel(currentLevel);
 				
 			} else if(state == GameState.PLAYING) {
-				// make a new trajectory planner whenever a new level is entered
-				tp = new TrajectoryPlanner();
+				
 			}
 
 		} // while(true) 괄호
@@ -242,9 +209,6 @@ public class myAgent_continue implements Runnable {
 	
 	public GameState solve(ArrayList<String> info_oneshot, ArrayList<String> info_pigs_loc, ArrayList<String> info_obs_loc)
 	{
-		// Remove side menu for sizeofbirds/ screenshot
-		ActionRobot.RemoveSideMenu(); // 화면 중앙을 클릭해서 sidemenu를 없앰
-		
 		// capture Image
 		BufferedImage screenshot = ActionRobot.doScreenShot();
 
@@ -258,6 +222,7 @@ public class myAgent_continue implements Runnable {
 		while (sling == null && aRobot.getState() == GameState.PLAYING) {
 			System.out
 			.println("No slingshot detected. Please remove pop up or zoom out");
+			System.out.flush();
 			ActionRobot.fullyZoomOut();
 			screenshot = ActionRobot.doScreenShot();
 			vision = new Vision(screenshot);
@@ -291,7 +256,7 @@ public class myAgent_continue implements Runnable {
 		GameState state = aRobot.getState();
 		int taptime = 1000;
 		String sspwd = System.getProperty("user.dir");
-		String currentTime = getCurrentTime("hhmmss");
+		String currentTime = getCurrentTime("MMDDHHmmss");
 		
 		// if there is a sling, then play, otherwise just skip.
 		if (sling != null) {
@@ -339,6 +304,7 @@ public class myAgent_continue implements Runnable {
 
 			// check whether the slingshot is changed. 
 			// the change of the slingshot indicates a change in the scale.
+			
 			{
 				ActionRobot.fullyZoomOut();
 				screenshot = ActionRobot.doScreenShot();
@@ -382,16 +348,24 @@ public class myAgent_continue implements Runnable {
 							}
 						} 
 					}
-					else
+					else {
 						System.out.println("Scale is changed, can not execute the shot, will re-segement the image");
+						System.out.flush();
+					}
+						
 				}
-				else
+				else {
 					System.out.println("no sling detected, can not execute the shot, will re-segement the image");
+					System.out.flush();
+				}
+					
 			}
-			int score =0;
+			
+			int score = StateUtil.getScore(ActionRobot.proxy);
 			
 			System.out.println("Shot angle: "+Math.toDegrees(angle)+
 					" || sizeofbirds: "+ sizeofbirds+" || shotNumber: " +(shotNumber-1));
+			System.out.flush();
 			
 			// 돼지가 없는지 확인 (돼지가 없으면 WON을 기다리면 됨)
 			pigs = vision.findPigsMBR(); // state에서 shoot을 하고나면 pig의 상태는 바로 반영이 되나??  
@@ -399,6 +373,7 @@ public class myAgent_continue implements Runnable {
 				while(true) {
 					if (aRobot.getState()==GameState.WON) {
 						System.out.println("pigs.isEmpty...state gets won!");
+						System.out.flush();
 						score = StateUtil.getScore(ActionRobot.proxy)- 10000*(sizeofbirds-shotNumber+1); //shoot score
 //						info_oneshot.add(String.valueOf(StateUtil.getScore(ActionRobot.proxy))); // accumulated score
 						info_oneshot.add(String.valueOf(score)); 
@@ -425,9 +400,9 @@ public class myAgent_continue implements Runnable {
 						score = temp;
 					}
 					if (aRobot.getState()==GameState.LOST) {
-						System.out.println("birds.isEmpty...state gets lost!");
+						System.out.println("birds.isEmpty...state gets lost! lost score" + score);
 //						info_oneshot.add(String.valueOf(StateUtil.getScore(ActionRobot.proxy)));
-						System.out.println("lost score" + score);
+						System.out.flush();
 						info_oneshot.add(String.valueOf(score));
 						return aRobot.getState();
 					}
@@ -439,11 +414,19 @@ public class myAgent_continue implements Runnable {
 				System.out.println("sleeping...");
 				Thread.sleep(10000);
 				System.out.println("wake up...");
+				System.out.flush();
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 //			int score = StateUtil.getScore(ActionRobot.proxy); 
-			info_oneshot.add(String.valueOf(StateUtil.getScore(ActionRobot.proxy))); 
+			if(aRobot.getState() == GameState.WON) {
+				info_oneshot.add(String.valueOf(StateUtil.getScore(ActionRobot.proxy)- 10000*(sizeofbirds-shotNumber+1)));
+				System.out.println("Pig was not empty. After sleeping, I got WON.");
+				System.out.flush();
+			}else {
+				info_oneshot.add(String.valueOf(StateUtil.getScore(ActionRobot.proxy))); 
+			}
+			
 		} 
 
 		return state;
