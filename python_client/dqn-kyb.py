@@ -1,10 +1,82 @@
+import os, inspect, logging, glob
+from PIL import Image
 import tensorflow as tf
+import numpy as np
+
+# log 설정 ...
+dqn_logger = logging.getLogger("dqn_logger")
+# Debug < Info < Warning < Error < Critical
+dqn_logger.setLevel(logging.DEBUG)
+dqn_logger.addHandler(logging.StreamHandler())
+dqn_logger.addHandler(logging.FileHandler("dqn_logger.log"))
+
+# path 설정 ...
+current_path = inspect.getfile(inspect.currentframe())
+current_dir = os.path.dirname(os.path.abspath(current_path))
+EXP_PATH=os.path.join(current_dir,"experiences")
+SCR_PATH=os.path.join(current_dir,"screenshots")
+
+#######################################################################
+# Stack two images : After shooting image, waiting for shooting image.
+# params :
+# 	screenshots_list : two images to be stacked
+# 	state_name : image name to be saved
+# 	playing_state : 'FIRST_SHOT', 'FINAL_SHOT', 'AMONG_SHOTS'
+# return :
+# 	No return, save state_name.png
+#######################################################################
+def get_state(screenshots_list, state_name, playing_state):
+	cropped = []
+	length = len(screenshots_list)
+	if (length == 1):
+		if playing_state == 'FIRST_SHOT':
+			dqn_logger.debug("First shot... Stack images.")
+			try:
+				cropped.append(Image.open(current_dir+"/all_black.png"))
+				cropped.append(Image.open(screenshots_list[0]).crop((70,45,760,390)))
+			except Exception as e:
+				dqn_logger.error("Error occurs at stacking two images.")
+				dqn_logger.error(str(e))
+		elif playing_state == 'FINAL_SHOT':
+			dqn_logger.debug("Final shot... Stack images.")
+			try:
+				cropped.append(Image.open(screenshots_list[0]).crop((70,45,760,390)))
+				cropped.append(Image.open(current_dir+"/all_black.png"))
+			except Exception as e:
+				dqn_logger.error("Error occurs at stacking two images.")
+				dqn_logger.error(str(e))
+		else:
+			print("playing_state error, current state is ", playing_state)
+	elif (length == 2):
+		if playing_state == 'AMONG_SHOTS':
+			dqn_logger.debug("Keep shooting... Stack images.")
+			try:
+				for screenshot in screenshots_list:
+					cropped.append(Image.open(screenshot).crop((70,45,760,390)))
+			except Exception as e:
+				dqn_logger.error("Error occurs at stacking two images.")
+				dqn_logger.error(str(e))
+		else:
+			dqn_logger.error("playing_state error, current state is ", playing_state)
+	else:
+		dqn_logger.error("More than two images in the list.")
+
+	stacked = np.vstack([np.asarray(crop) for crop in cropped])
+	stacked = Image.fromarray(stacked).resize((224,224))
+	try:
+		if not os.path.exists(EXP_PATH+'/'+state_name):
+			os.mkdir(EXP_PATH+'/'+state_name) #screenshot 아래에 state_name으로 생김
+		stacked.save(EXP_PATH+"/"+state_name+"/"+state_name+".png")
+	except Exception as e:
+		dqn_logger.error("Error occurs at saving stacked image.")
+		dqn_logger.error(str(e))
+
 
 def build_q_network(input_size=4096, hidden_size=[1024, 512], output_size=21):
 	'''
 	Builds the Tensorflow graph
 	'''
-	
+
 	# Placeholders for our Q-network
 	X = tf.placeholder(tf.float32, [None, input_size]) # [배치크기, feature size]
 	Y = tf.placeholder(tf.float32, [None, output_size]) # 각 state에서 얻을 수 있는 target reward 값
@@ -23,28 +95,26 @@ def build_q_network(input_size=4096, hidden_size=[1024, 512], output_size=21):
 	output = tf.matmul(L2, W3)+b3 # relu 거치지 않고, softmax를 함
 
 	loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=cost, labels=Y))
-	
+
 	optimizer = tf.train.AdamOptimizer(0.001).minimize(loss)
-    
-    # return 	
+
+    # return
 
 ####################################################################################
 print('Gazua Angry Bird!') #########################################################
 ####################################################################################
 
-# path 설정 ...
-# current_path = 
-# current_dir = 
-# checkpoint_dir = 
+
+# checkpoint_dir =
 
 # server랑 연결
 print('Initialize connection to ABServer')
 
-# DQN을 따라 replay memory를 모음? 아니면, 일단 cold start라 하고, 
+# DQN을 따라 replay memory를 모음? 아니면, 일단 cold start라 하고,
 # print('Populating replay memory...')
 
 
-replay_memory = [] 
+replay_memory = []
 
 saver = tf.train.Saver()
 
@@ -55,9 +125,9 @@ if latest_checkpoint:
 
 total_t = sess.run(tf.train.get_global_step()) # ... ?
 
-# epsilons = ?? 
+# epsilons = ??
 
-# policy = ?? 
+# policy = ??
 
 print('Populating replay memory...')
 # replay memory 만들기
@@ -88,24 +158,24 @@ for i_episode in range(num_episodes):
 
 		# 학습에 넣을 target reward 계산
 		q_values_next = q_estimator.predict(sess, next_states_batch)
-        best_actions = np.argmax(q_values_next, axis=1)
-        
-        q_values_next_target = target_estimator.predict(sess, next_states_batch)
-        
-        targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * \
+		best_actions = np.argmax(q_values_next, axis=1)
+
+		q_values_next_target = target_estimator.predict(sess, next_states_batch)
+
+		targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * \
             discount_factor * q_values_next_target[np.arange(batch_size), best_actions]
 
         # Perform gradient descent update
-        states_batch = np.array(states_batch)
-        loss = q_estimator.update(sess, states_batch, action_batch, targets_batch)
+		states_batch = np.array(states_batch)
+		loss = q_estimator.update(sess, states_batch, action_batch, targets_batch)
 
-        if done:
-            break
+		if done:
+			break
 
-        state = next_state
-        total_t += 1
+		state = next_state
+		total_t += 1
 
-    print('\nOne episode is done')
+		print('\nOne episode is done')
 
 
 # init = tf.global_variables_initializer()
