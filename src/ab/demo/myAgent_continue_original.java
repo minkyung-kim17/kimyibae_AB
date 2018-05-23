@@ -34,7 +34,7 @@ import ab.vision.Vision;
 
 import ab.utils.InfoCSV;
 
-public class myAgent_continue implements Runnable {
+public class myAgent_continue_original implements Runnable {
 
 	private ActionRobot aRobot;
 	private Random randomGenerator;
@@ -44,11 +44,11 @@ public class myAgent_continue implements Runnable {
 	TrajectoryPlanner tp;
 	private int shotNumber = 1;
 	private int sizeofbirds = 0;
-	private double min_angle = 0; //10ï¿½ï¿½ //0;
-	private double angle = min_angle; //(level 1ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½Ö¼ï¿½ ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½ 0.23 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½) for test
-	private double max_angle = Math.PI/2; //13ï¿½ï¿½ Math.PI/2;
+	private double min_angle = 0.174533; //10µµ //0;
+	private double angle = min_angle; //(level 1¼º°øÇÏ´Â ÃÖ¼Ò °¢µµ, ´ëÃæ 0.23 ¶óµð¾È) for test
+	private double max_angle = 0.226893; //13µµ Math.PI/2;
 	private int max_pig = 9;
-
+	
 	// for CSV file
 //	private static ArrayList<ArrayList<String>> info_set_level = new ArrayList<ArrayList<String>>();
 //	private static ArrayList<ArrayList<String>> info_set_total = new ArrayList<ArrayList<String>>();
@@ -57,10 +57,10 @@ public class myAgent_continue implements Runnable {
 //	private static ArrayList<String> info_obs_loc = new ArrayList<String>();
 	private ArrayList<String> info_field = new ArrayList<String>
 	(Arrays.asList("Level", "ShotNum", "Angle", "TapTime", "BirdType", "ImageNmae", "Score", "State", "Pigs", "Obstacle"));
-
+	
 	// a stand-alone implementation of the Naive Agent
-	public myAgent_continue() {
-
+	public myAgent_continue_original() {
+		
 		aRobot = new ActionRobot();
 		tp = new TrajectoryPlanner();
 		shotNumber= 1;
@@ -74,75 +74,75 @@ public class myAgent_continue implements Runnable {
 	public static String getCurrentTime(String timeFormat) {
 		return new SimpleDateFormat(timeFormat).format(System.currentTimeMillis());
 	}
-
+	
 	// run the client
 	public void run() {
-
+		
 		ArrayList<ArrayList<String>> info_set_level = new ArrayList<ArrayList<String>>();
 		ArrayList<ArrayList<String>> info_set_total = new ArrayList<ArrayList<String>>();
-		info_set_level.add(info_field); //CSV ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ column name ï¿½ï¿½ï¿½ï¿½
+		info_set_level.add(info_field); //CSV Ãâ·ÂÀ» À§ÇØ °¢ column name ÀúÀå
 		info_set_total.add(info_field);
-
+		
 		aRobot.loadLevel(currentLevel);
 		System.out.println("\n==========LEVEL " + currentLevel + "==========");
-
-		String pwd = System.getProperty("user.dir"); // CSV ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¡ ï¿½ï¿½ï¿½ï¿½
-
-
-
+		
+		String pwd = System.getProperty("user.dir"); // CSV ÀúÀåÀ» À§ÇÑ ÇöÀç Æú´õ À§Ä¡ ¾ò±â
+		
+		
+		
 		while (true) {
+			
+			ArrayList<String> info_oneshot = new ArrayList<String>(); // »õ °´Ã¼ ÇÒ´ç, »ç¿ëÈÄ nullÀ¸·Î ÇØÁ¦ 
+			ArrayList<String> info_pigs_loc = new ArrayList<String>(); // »õ °´Ã¼ ÇÒ´ç
+			ArrayList<String> info_obs_loc = new ArrayList<String>(); // »õ °´Ã¼ ÇÒ´ç
+			
+			info_oneshot.add(String.valueOf(currentLevel)); 
+			info_oneshot.add(String.valueOf(shotNumber)); 
 
-			ArrayList<String> info_oneshot = new ArrayList<String>(); // ï¿½ï¿½ ï¿½ï¿½Ã¼ ï¿½Ò´ï¿½, ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ nullï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
-			ArrayList<String> info_pigs_loc = new ArrayList<String>(); // ï¿½ï¿½ ï¿½ï¿½Ã¼ ï¿½Ò´ï¿½
-			ArrayList<String> info_obs_loc = new ArrayList<String>(); // ï¿½ï¿½ ï¿½ï¿½Ã¼ ï¿½Ò´ï¿½
-
-			info_oneshot.add(String.valueOf(currentLevel));
-			info_oneshot.add(String.valueOf(shotNumber));
-
-			GameState state = solve(info_oneshot, info_pigs_loc, info_obs_loc);
+			GameState state = solve(info_oneshot, info_pigs_loc, info_obs_loc); 					
 			System.out.println("One shot solved; current state is "+state);
-
+			
 			if (state == GameState.WON||state == GameState.LOST||state == GameState.PLAYING) {
 				info_oneshot.add(state.toString());
 				info_oneshot.addAll(info_pigs_loc);
 				info_oneshot.addAll(info_obs_loc);
-
+				
 				System.out.println("information_oneshot:");
 				InfoCSV.print_info(info_oneshot);
 				System.out.print("\n");
-
+				
 				info_set_level.add(info_oneshot);
 				info_set_total.add(info_oneshot);
-
-				// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½Ã¼ ï¿½ï¿½ï¿½ï¿½... ï¿½ì¼± nullï¿½ï¿½ Ã³ï¿½ï¿½...
-				info_oneshot = null; //new ArrayList<String>();
+				
+				// ¾²°í ³­ °´Ã¼ ÇØÁ¦... ¿ì¼± null·Î Ã³¸®... 
+				info_oneshot = null; //new ArrayList<String>(); 
 				info_pigs_loc = null; //new ArrayList<String>();
 				info_obs_loc = null; //new ArrayList<String>();
-
+				
 				if(state == GameState.WON||state == GameState.LOST) {
-					if (angle < max_angle) { //ï¿½Ì°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ø¼ï¿½ 0.5ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å°ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+					if (angle < max_angle) { //ÀÌ°åÀ»¶§µµ °è¼ÓÇØ¼­ 0.5µµ¾¿ Áõ°¡½ÃÅ°¸ç ½ÇÇà
 						aRobot.restartLevel();
 						angle += Math.PI/360;
 
-					} else { // ï¿½Ì±ï¿½ï¿½ï¿½ ï¿½Þ±ï¿½ï¿½×½ï¿½Æ®ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-						// CSV ï¿½ï¿½ï¿½ï¿½
-						String filepath_level = pwd+"/info_"+currentLevel+".csv";
+					} else { // ÀÌ±â°í ¾Þ±ÛÅ×½ºÆ®µµ ³¡³ª¸é ´ÙÀ½ ·¹º§·Î
+						// CSV Ãâ·Â
+						String filepath_level = pwd+"/info_"+currentLevel+".csv"; 
 						InfoCSV.writecsv(info_set_level, filepath_level);
-
+						
 						InfoCSV.print_infoset(info_set_level);
 						System.out.println("CSV Save: " + filepath_level);
-
-						// ï¿½ï¿½ï¿½âµµ ï¿½ï¿½ ï¿½ï¿½Ã¼... ï¿½Ò´ï¿½... ï¿½ï¿½ï¿½Í¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½... ï¿½ï¿½.ï¿½ï¿½
+						
+						// ¿©±âµµ »õ °´Ã¼... ÇÒ´ç... ÄÄÅÍ¿¡°Ô ¸øÇÒÁþ... ¤Ð.¤Ð 
 						info_set_level = null;
 						info_set_level = new ArrayList<ArrayList<String>>();
 						info_set_level.add(info_field);
-
+						
 						if (currentLevel == 21) {
 							String filepath_total = pwd+"/info.csv";
 							InfoCSV.writecsv(info_set_total, filepath_total);
 							return;
 						}
-
+						
 						// Go to the next level
 						aRobot.loadLevel(++currentLevel);
 						System.out.println("\n==========LEVEL " + currentLevel + "==========");
@@ -152,24 +152,24 @@ public class myAgent_continue implements Runnable {
 						tp = new TrajectoryPlanner();
 					}
 					shotNumber = 1;
-				}
+				}				
 			}
-			if (state == GameState.WON) {
+			if (state == GameState.WON) { 
 				try {
 					Thread.sleep(3000);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
-//
-//				int score = StateUtil.getScore(ActionRobot.proxy); // WONï¿½ï¿½ ï¿½ï¿½ï¿½Â¿ï¿½ï¿½ï¿½ accumulated score
-//				if(!scores.containsKey(currentLevel)) // scoresï¿½ï¿½ ï¿½Ö°ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+//				
+//				int score = StateUtil.getScore(ActionRobot.proxy); // WONÇÑ »óÅÂ¿¡¼­ accumulated score
+//				if(!scores.containsKey(currentLevel)) // scores¿¡ ÃÖ°í Á¡¼ö °»½Å
 //					scores.put(currentLevel, score);
 //				else
 //				{
 //					if(scores.get(currentLevel) < score)
 //						scores.put(currentLevel, score);
 //				}
-//
+//				
 //				int totalScore = 0;
 //				for(Integer key: scores.keySet()){
 //					totalScore += scores.get(key);
@@ -177,7 +177,7 @@ public class myAgent_continue implements Runnable {
 ////							+ " Score: " + scores.get(key) + " ");
 //				}
 ////				System.out.println("Total Score: " + totalScore);
-
+				
 			} else if (state == GameState.LOST) {
 
 			} else if (state == GameState.LEVEL_SELECTION) {
@@ -185,28 +185,28 @@ public class myAgent_continue implements Runnable {
 				.println("Unexpected level selection page, go to the last current level : "
 						+ currentLevel);
 				aRobot.loadLevel(currentLevel);
-
+				
 			} else if (state == GameState.MAIN_MENU) {
 				System.out
 				.println("Unexpected main menu page, go to the last current level : "
 						+ currentLevel);
 				ActionRobot.GoFromMainMenuToLevelSelection();
 				aRobot.loadLevel(currentLevel);
-
+				
 			} else if (state == GameState.EPISODE_MENU) {
 				System.out
 				.println("Unexpected episode menu page, go to the last current level : "
 						+ currentLevel);
 				ActionRobot.GoFromMainMenuToLevelSelection();
 				aRobot.loadLevel(currentLevel);
-
+				
 			} else if(state == GameState.PLAYING) {
-
+				
 			}
 
-		} // while(true) ï¿½ï¿½È£
-	} // public run() ï¿½ï¿½È£
-
+		} // while(true) °ýÈ£
+	} // public run() °ýÈ£
+	
 	public GameState solve(ArrayList<String> info_oneshot, ArrayList<String> info_pigs_loc, ArrayList<String> info_obs_loc)
 	{
 		// capture Image
@@ -214,10 +214,10 @@ public class myAgent_continue implements Runnable {
 
 		// process image
 		Vision vision = new Vision(screenshot);
-
+				
 		// find the slingshot
 		Rectangle sling = vision.findSlingshotMBR();
-
+		
 		// confirm the slingshot
 		while (sling == null && aRobot.getState() == GameState.PLAYING) {
 			System.out
@@ -228,7 +228,7 @@ public class myAgent_continue implements Runnable {
 			vision = new Vision(screenshot);
 			sling = vision.findSlingshotMBR();
 		}
-
+		
 		Point releasePoint = null;
 		Shot shot = new Shot();
 		int dx = 0;
@@ -236,7 +236,7 @@ public class myAgent_continue implements Runnable {
 
 		// get all the pigs
  		List<ABObject> pigs = vision.findPigsMBR();
- 		for (ABObject pig : pigs) {
+ 		for (ABObject pig : pigs) { 
  			info_pigs_loc.add(Double.toString(pig.getCenterX()));
  			info_pigs_loc.add(Double.toString(pig.getCenterY()));
  		} // get pig location
@@ -244,7 +244,7 @@ public class myAgent_continue implements Runnable {
  			info_pigs_loc.add("0");
  			info_pigs_loc.add("0");
  		}
-
+ 		
  		// get obstacle location and type
  		List<ABObject> obstacles = vision.findBlocksMBR();
  		for (ABObject obstacle : obstacles) {
@@ -252,30 +252,30 @@ public class myAgent_continue implements Runnable {
  			info_obs_loc.add(Double.toString(obstacle.getCenterX()));
  			info_obs_loc.add(Double.toString(obstacle.getCenterY()));
  		}
-
+ 		
 		GameState state = aRobot.getState();
 		int taptime = 1000;
 		String sspwd = System.getProperty("user.dir");
 		String currentTime = getCurrentTime("MMDDHHmmss");
-
+		
 		// if there is a sling, then play, otherwise just skip.
 		if (sling != null) {
 
 			if (!pigs.isEmpty()) {
-
+				
 				if(shotNumber==1) {
-					List<ABObject> birds = vision.findBirdsMBR(); // solveï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú¸ï¿½ï¿½ï¿½ Ä¸ï¿½ï¿½ï¿½ï¿½ screenshot
+					List<ABObject> birds = vision.findBirdsMBR(); // solve¿¡ µé¾î¿ÀÀÚ¸¶ÀÚ Ä¸ÃÄÇÑ screenshot
 					sizeofbirds = birds.size();
 					releasePoint = tp.findReleasePoint(sling, angle);
 					info_oneshot.add(Double.toString(angle));
 				}
 				if(shotNumber>1) {
-					//gaussianï¿½ï¿½ï¿½ï¿½ stdï¿½ï¿½ PI/8
+					//gaussianºÐÆ÷ std¸¦ PI/8
 					double twice_stdval = Math.PI/8;
-					//ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ angleï¿½ï¿½ meanï¿½ï¿½ï¿½ï¿½
+					//ÇöÀç ½ð angleÀ» meanÀ¸·Î
 					double mean = angle;
 					double tempangle = mean+(randomGenerator.nextGaussian())*twice_stdval;
-					//min angle, max angle ï¿½Ñ¾î°¡ï¿½ï¿½ meanï¿½ï¿½ï¿½ï¿½ set.
+					//min angle, max angle ³Ñ¾î°¡¸é meanÀ¸·Î set.
 					if (tempangle<0 || tempangle>Math.PI) {
 						tempangle = mean;
 					}
@@ -286,13 +286,12 @@ public class myAgent_continue implements Runnable {
 				// Get the reference point
 				Point refPoint = tp.getReferencePoint(sling);
 
-				//Calculate the tapping time according the bird type
-				if (releasePoint != null) {
-					ABType type = aRobot.getBirdTypeOnSling(); //unknownï¿½ï¿½ ï¿½Ö°ï¿½ ï¿½ã¶§ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½.... ï¿½ï¿½.ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+				//Calculate the tapping time according the bird type 
+				if (releasePoint != null) {					ABType type = aRobot.getBirdTypeOnSling(); //unknownÀÎ ¾Ö°¡ ¶ã¶§µµ ÀÖÀ½.... ¤Ì.¤Ì ¹¹Áö
 					info_oneshot.add(String.valueOf(taptime));
 					info_oneshot.add(type.toString());
-					// tap-time 1000ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Âµï¿½, ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ð½ï¿½ï¿½Ø¾ï¿½ ï¿½ï¿½
-
+					// tap-time 1000À¸·Î Áá´Âµ¥, »õ¸¶´Ù ÇÐ½ÀÇØ¾ß ÇÔ
+						
 					dx = (int)releasePoint.getX() - refPoint.x;
 					dy = (int)releasePoint.getY() - refPoint.y;
 					shot = new Shot(refPoint.x, refPoint.y, dx, dy, taptime);
@@ -300,30 +299,30 @@ public class myAgent_continue implements Runnable {
 					System.err.println("No Release Point Found");
 					return state;
 				}
-			} // pigï¿½ï¿½ emptyï¿½ï¿½ ï¿½Æ´Ò¶ï¿½ ï¿½ï¿½È£
+			} // pig°¡ empty°¡ ¾Æ´Ò¶§ °ýÈ£
+			
 
-
-			// check whether the slingshot is changed.
+			// check whether the slingshot is changed. 
 			// the change of the slingshot indicates a change in the scale.
-
+			
 			{
 				ActionRobot.fullyZoomOut();
 				screenshot = ActionRobot.doScreenShot();
 				try {
 				    // retrieve image
 				    File outputfile = new File(sspwd+"/screenshot/screenshot_level"+currentLevel+"_"+currentTime+".png");
-
+				    
 				    ImageIO.write(screenshot, "png", outputfile);
-				    info_oneshot.add(outputfile.getName());
+				    info_oneshot.add(outputfile.getName());					
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-
+				
 				vision = new Vision(screenshot);
 				Rectangle _sling = vision.findSlingshotMBR();
 				if(_sling != null)
 				{
-					double scale_diff = Math.pow((sling.width - _sling.width),2) +  Math.pow((sling.height - _sling.height),2);
+					double scale_diff = Math.pow((sling.width - _sling.width),2) +  Math.pow((sling.height - _sling.height),2);	
 					if(scale_diff < 25)
 					{
 						if(dx < 0)
@@ -331,91 +330,111 @@ public class myAgent_continue implements Runnable {
 //							try {
 //							    // retrieve image
 //							    File outputfile = new File(sspwd+"/screenshot/screenshot_level"+currentLevel+"_"+currentTime+".png");
-//
+//							    
 //							    ImageIO.write(screenshot, "png", outputfile);
-//							    info_oneshot.add(outputfile.getName());
+//							    info_oneshot.add(outputfile.getName());					
 //							} catch (IOException e) {
 //								e.printStackTrace();
 //							}
 							aRobot.cshoot(shot);
 							shotNumber ++;
-							state = aRobot.getState();
+							state = aRobot.getState();								
 							if ( state == GameState.PLAYING )
 							{
-								screenshot = ActionRobot.doScreenShot(); // shootï¿½ï¿½ ï¿½Ï°ï¿½, ï¿½Ù½ï¿½ screenshotï¿½ï¿½ ï¿½ï¿½
-								vision = new Vision(screenshot);
+								screenshot = ActionRobot.doScreenShot(); // shootÀ» ÇÏ°í, ´Ù½Ã screenshotÀ» º½
+								vision = new Vision(screenshot); 
 								List<Point> traj = vision.findTrajPoints();
-								tp.adjustTrajectory(traj, sling, releasePoint);
+								tp.adjustTrajectory(traj, sling, releasePoint);							
 							}
-							int score = StateUtil.getScore(ActionRobot.proxy);
-							int sleepcount =0;
-							System.out.println(sleepcount);
-							while(true) {
-								int temp = StateUtil.getScore(ActionRobot.proxy);
-								if (temp>score) { // 0ï¿½ï¿½ï¿½ï¿½ Å« ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Þ¾Æ¿ï¿½ï¿½ï¿½ï¿½ï¿½
-									score = temp;
-									sleepcount = 0;
-								}else if (temp==score) {
-									try {
-										Thread.sleep(1000);
-									} catch (InterruptedException e) {
-										// TODO Auto-generated catch block
-										e.printStackTrace();
-									}
-									sleepcount+=1;
-									if (sleepcount>5) {
-										break;
-									}
-								}else if(temp<score){
-									break;
-								}
-								System.out.println(sleepcount);
-							}
-							System.out.flush();
-							info_oneshot.add(String.valueOf(score));
-
-							if (aRobot.getState()==GameState.LOST||aRobot.getState()==GameState.WON) {
-								ActionRobot.fullyZoomOut();
-								screenshot = ActionRobot.doScreenShot();
-								try {
-										// retrieve image
-										File outputfile = new File(sspwd+"/screenshot/screenshot_level"+currentLevel+"_"+currentTime+"LOSTorWIN.png");
-										ImageIO.write(screenshot, "png", outputfile);
-										info_oneshot.add(outputfile.getName());					
-								} catch (IOException e) {
-									e.printStackTrace();
-								}
-//								return aRobot.getState();
-							}
-							
-						}
+						} 
 					}
 					else {
 						System.out.println("Scale is changed, can not execute the shot, will re-segement the image");
 						System.out.flush();
 					}
-
+						
 				}
 				else {
 					System.out.println("no sling detected, can not execute the shot, will re-segement the image");
 					System.out.flush();
 				}
-
+					
 			}
-
+			
+			int score = StateUtil.getScore(ActionRobot.proxy);
+			
 			System.out.println("Shot angle: "+Math.toDegrees(angle)+
 					" || sizeofbirds: "+ sizeofbirds+" || shotNumber: " +(shotNumber-1));
-
 			System.out.flush();
+			
+			// µÅÁö°¡ ¾ø´ÂÁö È®ÀÎ (µÅÁö°¡ ¾øÀ¸¸é WONÀ» ±â´Ù¸®¸é µÊ)
+			pigs = vision.findPigsMBR(); // state¿¡¼­ shootÀ» ÇÏ°í³ª¸é pigÀÇ »óÅÂ´Â ¹Ù·Î ¹Ý¿µÀÌ µÇ³ª??  
+			if(pigs.isEmpty()) { 
+				while(true) {
+					if (aRobot.getState()==GameState.WON) {
+						System.out.println("pigs.isEmpty...state gets won!");
+						System.out.flush();
+						score = StateUtil.getScore(ActionRobot.proxy)- 10000*(sizeofbirds-shotNumber+1); //shoot score
+//						info_oneshot.add(String.valueOf(StateUtil.getScore(ActionRobot.proxy))); // accumulated score
+						info_oneshot.add(String.valueOf(score)); 
+						return aRobot.getState();
+					}
+				}
+			}	
+			
+			// µÅÁö´Â ÀÖ°í, »õ°¡ ¾ø´ÂÁö È®ÀÎ (»õ°¡ ¾øÀ¸¸é lost¸¦ ±â´Ù¸®¸é µÊ)
+//			List<ABObject> birds = vision.findBirdsMBR();
+//			if(birds.isEmpty()) { 
+//				while(true) {
+//					if (aRobot.getState()==GameState.LOST) {
+//						System.out.println("birds.isEmpty...state gets lost!");
+//						return state;
+//					}
+//				}
+//			}
+			
+			if(sizeofbirds==shotNumber-1) { // ±× level¿¡¼­ shootÀ» ´ÙÇÔ
+				while(true) {
+					int temp = StateUtil.getScore(ActionRobot.proxy);
+					if (temp>score) { // 0º¸´Ù Å« ¸¶Áö¸· Á¡¼ö¸¦ ¹Þ¾Æ¿Àµµ·Ï
+						score = temp;
+					}
+					if (aRobot.getState()==GameState.LOST) {
+						System.out.println("birds.isEmpty...state gets lost! lost score" + score);
+//						info_oneshot.add(String.valueOf(StateUtil.getScore(ActionRobot.proxy)));
+						System.out.flush();
+						info_oneshot.add(String.valueOf(score));
+						return aRobot.getState();
+					}
+				}
+			}
+			
+			// µÅÁö´Â ÀÖ°í »õµµ ÀÖÀ» ¶§, ¾ÈÁ¤È­µÈ Á¡¼ö¸¦ ±â´Ù¸²
+			try {
+				System.out.println("sleeping...");
+				Thread.sleep(10000);
+				System.out.println("wake up...");
+				System.out.flush();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+//			int score = StateUtil.getScore(ActionRobot.proxy); 
+			if(aRobot.getState() == GameState.WON) {
+				info_oneshot.add(String.valueOf(StateUtil.getScore(ActionRobot.proxy)- 10000*(sizeofbirds-shotNumber+1)));
+				System.out.println("Pig was not empty. After sleeping, I got WON.");
+				System.out.flush();
+			}else {
+				info_oneshot.add(String.valueOf(StateUtil.getScore(ActionRobot.proxy))); 
+			}
+			
+		} 
 
-		}
-		return aRobot.getState();
+		return state;
 	}
-//}
 
 	public static void main(String args[]) {
 
-		myAgent_continue na = new myAgent_continue();
+		myAgent_continue_original na = new myAgent_continue_original();
 		if (args.length > 0)
 			na.currentLevel = Integer.parseInt(args[0]);
 		na.run();
