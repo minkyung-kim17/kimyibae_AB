@@ -43,20 +43,15 @@ public class myAgent_continue implements Runnable {
 //	private Map<Integer,Integer> scores = new LinkedHashMap<Integer,Integer>();
 	TrajectoryPlanner tp;
 	private int shotNumber = 1;
-	private int sizeofbirds = 0;
 	private double min_angle = 0; //10�� //0;
 	private double angle = min_angle; //(level 1�����ϴ� �ּ� ����, ���� 0.23 ������) for test
 	private double max_angle = Math.PI/2; //13�� Math.PI/2;
 	private int max_pig = 9;
+	private int last_score = 0;
 
-	// for CSV file
-//	private static ArrayList<ArrayList<String>> info_set_level = new ArrayList<ArrayList<String>>();
-//	private static ArrayList<ArrayList<String>> info_set_total = new ArrayList<ArrayList<String>>();
-//	private static ArrayList<String> info_oneshot = new ArrayList<String>();
-//	private static ArrayList<String> info_pigs_loc = new ArrayList<String>();
-//	private static ArrayList<String> info_obs_loc = new ArrayList<String>();
+
 	private ArrayList<String> info_field = new ArrayList<String>
-	(Arrays.asList("Level", "ShotNum", "Angle", "TapTime", "BirdType", "ImageNmae", "Score", "State", "Pigs", "Obstacle"));
+	(Arrays.asList("Level", "ShotNum", "Angle", "TapTime", "BirdType", "ImageNmae", "Score-lastScore", "Score", "State", "Pigs", "Obstacle"));
 
 	// a stand-alone implementation of the Naive Agent
 	public myAgent_continue() {
@@ -160,23 +155,6 @@ public class myAgent_continue implements Runnable {
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
-//
-//				int score = StateUtil.getScore(ActionRobot.proxy); // WON�� ���¿��� accumulated score
-//				if(!scores.containsKey(currentLevel)) // scores�� �ְ� ���� ����
-//					scores.put(currentLevel, score);
-//				else
-//				{
-//					if(scores.get(currentLevel) < score)
-//						scores.put(currentLevel, score);
-//				}
-//
-//				int totalScore = 0;
-//				for(Integer key: scores.keySet()){
-//					totalScore += scores.get(key);
-////					System.out.println(" Level " + key
-////							+ " Score: " + scores.get(key) + " ");
-//				}
-////				System.out.println("Total Score: " + totalScore);
 
 			} else if (state == GameState.LOST) {
 
@@ -264,10 +242,9 @@ public class myAgent_continue implements Runnable {
 			if (!pigs.isEmpty()) {
 
 				if(shotNumber==1) {
-					List<ABObject> birds = vision.findBirdsMBR(); // solve�� �������ڸ��� ĸ���� screenshot
-					sizeofbirds = birds.size();
 					releasePoint = tp.findReleasePoint(sling, angle);
 					info_oneshot.add(Double.toString(angle));
+					last_score = 0;
 				}
 				if(shotNumber>1) {
 					//gaussian���� std�� PI/8
@@ -311,7 +288,7 @@ public class myAgent_continue implements Runnable {
 				screenshot = ActionRobot.doScreenShot();
 				try {
 				    // retrieve image
-				    File outputfile = new File(sspwd+"/screenshot/screenshot_level"+currentLevel+"_"+currentTime+".png");
+				    File outputfile = new File(sspwd+"/screenshot/screenshot_level"+currentLevel+"_"+currentTime+"PLAYING.png");
 
 				    ImageIO.write(screenshot, "png", outputfile);
 				    info_oneshot.add(outputfile.getName());
@@ -356,6 +333,9 @@ public class myAgent_continue implements Runnable {
 									score = temp;
 									sleepcount = 0;
 								}else if (temp==score) {
+									if (aRobot.getState()==GameState.LOST||aRobot.getState()==GameState.WON) {
+										break;
+									}
 									try {
 										Thread.sleep(1000);
 									} catch (InterruptedException e) {
@@ -372,20 +352,34 @@ public class myAgent_continue implements Runnable {
 								System.out.println(sleepcount);
 							}
 							System.out.flush();
+							info_oneshot.add(String.valueOf(score-last_score));
 							info_oneshot.add(String.valueOf(score));
+							last_score = score;
+							
 
-							if (aRobot.getState()==GameState.LOST||aRobot.getState()==GameState.WON) {
-								ActionRobot.fullyZoomOut();
+							if (aRobot.getState()==GameState.LOST) {
 								screenshot = ActionRobot.doScreenShot();
 								try {
 										// retrieve image
-										File outputfile = new File(sspwd+"/screenshot/screenshot_level"+currentLevel+"_"+currentTime+"LOSTorWIN.png");
+										File outputfile = new File(sspwd+"/screenshot/screenshot_level"+currentLevel+"_"+currentTime+"LOST.png");
 										ImageIO.write(screenshot, "png", outputfile);
 										info_oneshot.add(outputfile.getName());					
 								} catch (IOException e) {
 									e.printStackTrace();
 								}
 //								return aRobot.getState();
+							}
+							if (aRobot.getState()==GameState.WON) {
+								screenshot = ActionRobot.doScreenShot();
+								try {
+										// retrieve image
+										File outputfile = new File(sspwd+"/screenshot/screenshot_level"+currentLevel+"_"+currentTime+"WON.png");
+										ImageIO.write(screenshot, "png", outputfile);
+										info_oneshot.add(outputfile.getName());					
+								} catch (IOException e) {
+									e.printStackTrace();
+								}
+//										return aRobot.getState();
 							}
 							
 						}
@@ -403,9 +397,7 @@ public class myAgent_continue implements Runnable {
 
 			}
 
-			System.out.println("Shot angle: "+Math.toDegrees(angle)+
-					" || sizeofbirds: "+ sizeofbirds+" || shotNumber: " +(shotNumber-1));
-
+			System.out.println("Shot angle: "+Math.toDegrees(angle)+" || shotNumber: " +(shotNumber-1));
 			System.out.flush();
 
 		}
