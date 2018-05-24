@@ -43,9 +43,9 @@ public class myAgent_continue implements Runnable {
 //	private Map<Integer,Integer> scores = new LinkedHashMap<Integer,Integer>();
 	TrajectoryPlanner tp;
 	private int shotNumber = 1;
-	private double min_angle = 0; //10�� //0;
+	private double min_angle = Math.PI/2-Math.PI/180; //10�� //0;
 	private double angle = min_angle; //(level 1�����ϴ� �ּ� ����, ���� 0.23 ������) for test
-	private double max_angle = Math.PI/2; //13�� Math.PI/2;
+	private double max_angle = Math.PI/2-Math.PI/360; //13�� Math.PI/2;
 	private int max_pig = 9;
 	private int last_score = 0;
 
@@ -115,13 +115,10 @@ public class myAgent_continue implements Runnable {
 				info_obs_loc = null; //new ArrayList<String>();
 
 				if(state == GameState.WON||state == GameState.LOST) {
-					if (angle < max_angle) { //�̰������� �����ؼ� 0.5���� ������Ű�� ����
-						aRobot.restartLevel();
-						angle += Math.PI/360;
-
-					} else { // �̱��� �ޱ��׽�Ʈ�� ������ ���� ������
+					if (angle >= max_angle-Math.PI/720) {
 						// CSV ����
-						String filepath_level = pwd+"/info_"+currentLevel+".csv";
+						String currentTime = getCurrentTime("MMDDHHmmss");
+						String filepath_level = pwd+"/infolevel_"+currentLevel+"_"+currentTime+".csv";
 						InfoCSV.writecsv(info_set_level, filepath_level);
 
 						InfoCSV.print_infoset(info_set_level);
@@ -133,7 +130,7 @@ public class myAgent_continue implements Runnable {
 						info_set_level.add(info_field);
 
 						if (currentLevel == 21) {
-							String filepath_total = pwd+"/info.csv";
+							String filepath_total = pwd+currentTime+"/info.csv";
 							InfoCSV.writecsv(info_set_total, filepath_total);
 							return;
 						}
@@ -146,6 +143,12 @@ public class myAgent_continue implements Runnable {
 						// make a new trajectory planner whenever a new level is entered
 						tp = new TrajectoryPlanner();
 					}
+					
+					else { //�̰������� �����ؼ� 0.5���� ������Ű�� ����
+						aRobot.restartLevel();
+						angle += Math.PI/360;
+
+					} 
 					shotNumber = 1;
 				}
 			}
@@ -238,7 +241,10 @@ public class myAgent_continue implements Runnable {
 
 		// if there is a sling, then play, otherwise just skip.
 		if (sling != null) {
-
+			if(angle >= max_angle) {
+				return GameState.LOST;
+			}
+			
 			if (!pigs.isEmpty()) {
 
 				if(shotNumber==1) {
@@ -343,7 +349,7 @@ public class myAgent_continue implements Runnable {
 										e.printStackTrace();
 									}
 									sleepcount+=1;
-									if (sleepcount>5) {
+									if (sleepcount>2) {
 										break;
 									}
 								}else if(temp<score){
