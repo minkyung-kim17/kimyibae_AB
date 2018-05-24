@@ -12,7 +12,7 @@
 
     <target name="compile">
         <mkdir dir="src"/>
-	 <javac srcdir="src" destdir="src" classpathref="classpath"/>
+	 <javac srcdir="src" destdir="src" classpathref="classpath" classpath="/usr/local/share/py4j/py4j0.10.4.jar"/>
     </target>  
 
 
@@ -21,7 +21,7 @@
             <manifest>
                 <attribute name="Main-Class" value="org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"/>
                 <attribute name="Rsrc-Main-Class" value="ab.demo.MainEntry"/>
-                <attribute name="Class-Path" value="."/>
+                <attribute name="Class-Path" value=".;/usr/local/share/py4j/"/>
                 <attribute name="Rsrc-Class-Path" value="./ Jama-1.0.2.jar json-simple-1.1.1.jar WebSocket.jar commons-codec-1.7.jar"/>
             </manifest>
             <zipfileset src="external/jar-in-jar-loader.zip"/>
@@ -32,4 +32,24 @@
             <zipfileset dir="external" includes="commons-codec-1.7.jar"/>
         </jar>
     </target>
+
+  <target name="wrapper">
+        <jar destfile="ABWrapper.jar">
+            <manifest>
+                <attribute name="Main-Class" value="org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"/>
+                <attribute name="Rsrc-Main-Class" value="ab.demo.NaiveWrapper"/>
+                <attribute name="Class-Path" value="."/>
+                <attribute name="Rsrc-Class-Path" value="./ Jama-1.0.2.jar json-simple-1.1.1.jar WebSocket.jar commons-codec-1.7.jar py4j0.10.4.jar"/>
+            </manifest>
+            <zipfileset src="external/jar-in-jar-loader.zip"/>
+            <fileset dir="src/"/>
+            <zipfileset dir="external" includes="Jama-1.0.2.jar"/>
+            <zipfileset dir="external" includes="json-simple-1.1.1.jar"/>
+            <zipfileset dir="external" includes="WebSocket.jar"/>
+            <zipfileset dir="external" includes="commons-codec-1.7.jar"/>
+            <zipfileset dir="external" includes="py4j0.10.4.jar"/>
+        </jar>
+    </target>
+
+
 </project>
