@@ -78,13 +78,14 @@ def copy_model_parameters(sess, estimator1, estimator2):
 
     sess.run(update_ops)
 
-def get_score_after_shot(parser, comm_socket):
+def get_score_after_shot(parser, comm_socket, start_score):
     """
     Get score after shot.
 
     Args:
       parser : Wrapper object
       comm_socket : server-client socket
+      start_score : score before shooting
     Return:
       reward (last_score - start_score)
       new_score (last_score)
@@ -94,7 +95,6 @@ def get_score_after_shot(parser, comm_socket):
     end_image = None
     save_path = None
     screenshot = None
-    start_score = parser.get_score_in_game(save_path)
     last_score = start_score
     sleepcount = 0
     is_terminal = False
