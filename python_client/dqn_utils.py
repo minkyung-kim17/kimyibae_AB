@@ -5,6 +5,7 @@ from tensorflow.python.keras.applications.vgg16 import preprocess_input, decode_
 from tensorflow.python.keras.preprocessing import image
 from tensorflow.python.keras.models import Model
 import numpy as np
+from PIL import Image
 
 import pdb
 
@@ -28,23 +29,28 @@ def make_epsilon_greedy_policy(estimator, nA):
         A = np.ones(nA, dtype=float) * epsilon / nA
         q_values = estimator.predict(sess, np.expand_dims(observation, 0))[0]
         best_action = np.argmax(q_values)
-        A[best_action] += (1.0 - epsilon) # ? 
+        A[best_action] += (1.0 - epsilon) # ?
         return A
     return policy_fn
 
-def preprocessing(state_img, fe_model):
-    pass
 
-def get_feature_4096(model, img_path):
+def get_feature_4096(model, img_path, need_crop = True, need_resize = True):
     '''
     vgg16 = VGG16(weights= 'imagenet', include_top= False) # output: 7*7*512
     vgg16 = VGG16(weights= 'imagenet', include_top= True) # output: 1000*1
+
+    Return:
+      4096*1
     '''
     model_4096 = Model(inputs=model.input, outputs=model.get_layer('fc2').output)
+    im = Image.open(img_path)
 
-    img = image.load_img(img_path, target_size=(224, 224)) # 우선 image.load_img로 강제 resize
-    # pdb.set_trace()
-    x = image.img_to_array(img)
+    if need_crop == True:
+        im = im.crop((70,45,760,390))
+    if need_resize = True:
+        im = im.resize((224,224))
+
+    x = image.img_to_array(im)
     x = np.expand_dims(x, axis=0)
     x = preprocess_input(x)
 
@@ -72,56 +78,57 @@ def copy_model_parameters(sess, estimator1, estimator2):
 
     sess.run(update_ops)
 
-def get_score_after_shot(parser, comm_socket, last_score):
-    end_image = None
-    no_change_count=0
-    start_time = time.time()
-    
-    save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
-    screenshot = comm_do_screenshot(comm_socket, save_path=save_path)
-    start_score = parser.get_score_in_game(save_path)
+def get_score_after_shot(parser, comm_socket):
+    """
+    Get score after shot.
 
-    pigs=[]
-    birds=[]
+    Args:
+      parser : Wrapper object
+      comm_socket : server-client socket
+    Return:
+      reward (last_score - start_score)
+      new_score (last_score)
+      save_path (next state raw image path. WON or LOST should be captured at terminal state.)
+      state (PLAYING or WON or LOST)
+    """
+    end_image = None
+    save_path = None
+    screenshot = None
+    start_score = parser.get_score_in_game(save_path)
+    last_score = start_score
+    sleepcount = 0
+    is_terminal = False
     # Shooting is done. Check the score
     while True:
-        
-        # if the game has ended, end checking
-        state = comm_get_state(comm_socket)
-        if state == WON or state == LOST:
-            break
-
         # check the status of the screenshot
         save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
         screenshot = comm_do_screenshot(comm_socket, save_path=save_path)
-        score   = parser.get_score_in_game(save_path)
-        pigs    = parser.get_pigs(save_path)
-        birds   = parser.get_birds(save_path)
+        score  = parser.get_score_in_game(save_path)
 
         # if the new score is less than the last score, something went wrong, just return the last status
-        if last_score > score:
-            break
-        # if the new score is equal to the last score. count the time
-        elif last_score==score:
-            end_image = screenshot
-            time.sleep(1000)
-            no_change_count+=1
-
-        # if the new score is higher than the last score, keep tracking
-        else:
+        if (score > last_score)
             end_image = screenshot
             last_score = score
-            no_change_count = 0
+            sleepcount = 0
+
+        # PLAYING / WON / LOST
+        elif last_score==score:
+            if comm_get_state(comm_socket) == WON || comm_get_state(comm_socket) == LOST:
+                save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
+                end_image = comm_do_screenshot(comm_socket, save_path=save_path)
+                break
+            time.sleep(1)
+            sleepcount+=1
+            if sleepcount>=10:
+                save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
+                end_image = comm_do_screenshot(comm_socket, save_path=save_path)
+                break
+
+        else: # last_score > score: # LOST
+            save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
+            end_image = comm_do_screenshot(comm_socket, save_path=save_path)
+            break
 
         # if the no change count and passed time are enough, return.
-        if no_change_count>=10:
-
-            # if the game has ended (pig=0), and there are remaining birds, wait for the birds bonus.
-            if len(pigs)==0 and len(birds)>=2:
-                no_change_count-= 40
-            else:
-                break
-    is_terminal = False
-    if len(pigs)==0 or len(birds)==0:
-        is_terminal = True
-    return last_score-start_score, last_score, save_path, is_terminal
+    state = comm_get_state(comm_socket)
+    return last_score-start_score, last_score, save_path, state
