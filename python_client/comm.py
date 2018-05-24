@@ -212,7 +212,8 @@ def comm_get_state(s, silent=True):
 
 	if not silent:
 		print ("\t\tgame_state:", game_state, GAME_STATE[game_state])
-	return game_state
+	# return game_state
+	return GAME_STATE[game_state]
 
 def comm_fully_zoomout(s, silent=True):
 	if not silent:

@@ -15,11 +15,12 @@ class WrapperPython:
 		# *** ERROR:
 		# py4j.protocol.Py4JNetworkError: An error occurred while trying to connect
 		# to the Java server (localhost:25555)
-	
+
 	def get_slingshot(self, screenshot_path, silent=True):
 		if not silent:
 			print ("\tFind slingshot..."),
 		slingshot_rect = self.entry_point.findSlingshot(screenshot_path)
+		# x, y, width, height
 		if slingshot_rect[0]==-1 or slingshot_rect[1]==-1:
 			#sling point is not found. zoom out again
 			print ("")

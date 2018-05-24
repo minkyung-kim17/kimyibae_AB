@@ -1,13 +1,18 @@
-import os, inspect, logging, glob
+import os, inspect, logging, glob, time, math, itertools
 import socket
 from PIL import Image
 import tensorflow as tf
 import numpy as np
+from tensorflow.python.keras.applications.vgg16 import VGG16
 
 # sys.path.append('../')
-from comm import * 
-from wrapper_python import *
+# from comm import *
+import comm 
+import wrapper_python as wrap
+import q_network
 import dqn_utils
+
+import pdb
 
 # log 설정 ...
 dqn_logger = logging.getLogger("dqn_logger")
@@ -20,16 +25,27 @@ dqn_logger.addHandler(logging.FileHandler("dqn_logger.log"))
 current_path = inspect.getfile(inspect.currentframe())
 current_dir = os.path.dirname(os.path.abspath(current_path)) 
 EXP_PATH=os.path.join(current_dir,"experiences")
-SCR_PATH=os.path.join(current_dir,"screenshots")
+# SCR_PATH=os.path.join(current_dir,"screenshots")
 
-checkpoint_dir = os.path.join(EXP_PATH, "checkpoints")
-checkpoint_path = os.path.join(checkpoint_dir, "model")
+if not os.path.exists(EXP_PATH):
+			os.mkdir(EXP_PATH) 
+# if not os.path.exists(SCR_PATH):
+			# os.mkdir(SCR_PATH) 
+
+checkpoint_dir = os.path.join(current_dir, "checkpoints")
+checkpoint_path = os.path.join(checkpoint_dir, "model") # checkpoint file path
 
 if not os.path.exists(checkpoint_dir):
-        os.makedirs(checkpoint_dir)
+		os.makedirs(checkpoint_dir)
+
+# episode_prefix	= '%s/startAt_%s'%(EXP_PATH, time.strftime("%Y%m%d_%H%M"))
+run_start_dir = os.path.join(EXP_PATH, "startAt_%s"%time.strftime("%Y%m%d_%H%M"))
+
+# while True:
+# 	pass
 
 def get_state(screenshots_list, state_name, playing_state):
-	'''
+	
 	#######################################################################
 	# Stack two images : After shooting image, waiting for shooting image.
 	# params :
@@ -39,7 +55,7 @@ def get_state(screenshots_list, state_name, playing_state):
 	# return :
 	# 	No return, save state_name.png
 	#######################################################################
-	'''
+	
 	cropped = []
 	length = len(screenshots_list)
 	if (length == 1):
@@ -85,37 +101,11 @@ def get_state(screenshots_list, state_name, playing_state):
 		dqn_logger.error("Error occurs at saving stacked image.")
 		dqn_logger.error(str(e))
 
-def build_q_network(input_size=4096, hidden_size=[1024, 512], output_size=21):
-	'''
-	Builds the Tensorflow graph
-	'''
-
-	# Placeholders for our Q-network
-	X = tf.placeholder(tf.float32, [None, input_size]) # [배치크기, feature size]
-	Y = tf.placeholder(tf.float32, [None, output_size]) # 각 state에서 얻을 수 있는 target reward 값
-
-	# Neural network with 2 hidden layer
-	W1 = tf.Variable(tf.random_normal([input_size, hidden_size[0]], stddev=0.01))
-	b1 = tf.Variable(tf.random_normal([hidden_size[0]], stddev=0.01))
-	L1 = tf.nn.relu(tf.matmul(X, W1)+b1)
-
-	W2 = tf.Variable(tf.random_normal([hidden_size[0], hidden_size[1]], stddev=0.01))
-	b2 = tf.Variable(tf.random_normal([hidden_size[1]], stddev=0.01))
-	L2 = tf.nn.relu(tf.matmul(L1, W2)+b2)
-
-	W3 = tf.Variable(tf.random_normal([hidden_size[1], output_size], stddev=0.01))
-	b3 = tf.Variable(tf.random_normal([output_size], stddev=0.01))
-	output = tf.matmul(L2, W3)+b3 # relu 거치지 않고, softmax를 함
-
-	loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=cost, labels=Y))
-
-	optimizer = tf.train.AdamOptimizer(0.001).minimize(loss)
-
-    # return
-
 ####################################################################################
 print('Gazua Angry Bird!') #########################################################
 ####################################################################################
+
+update_target_estimator_every = 50
 
 #################################
 ##### Initialize game environment
@@ -124,21 +114,33 @@ print('Initialize connection to ABServer')
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.settimeout(20)
 s.connect(('localhost',2004))
-_,_,_ = comm_configure(s, 1003) # ?? 
+_,_,_ = comm.comm_configure(s, 1003)
 
 # connect to Java
-wrapper = WrapperPython('127.0.0.1') 
+wrapper = wrap.WrapperPython('127.0.0.1') 
 
 # initialize tensorflow session
-sess = tf.Session()
+# tf.reset_default_graph() # ?? 
+sess = tf.Session() 
+
+# initialize feature extraction
+vgg16 = VGG16(weights= 'imagenet')
 
 # set the action sets
 valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
 valid_taptimes = list(range(500, 2501, 100)) # 500부터 2500까지 100씩 증가 
-angle_estimator, angle_target = DQN_Estimator(obs_size, sess, fe, sc_parser, "angle", valid_angles) # 수정 필요
-taptime_estimator, taptime_target = DQN_Estimator(obs_size, sess, fe, sc_parser, "taptime", valid_taptimes) # 수정 필요 
+
+angle_estimator = q_network.DQN_Estimator(scope="angle_estimator", output_size=len(valid_angles), summaries_dir=None)
+angle_target_estimator = q_network.DQN_Estimator(scope="angle_target_estimator", output_size=len(valid_angles))
+taptime_estimator = q_network.DQN_Estimator(scope="taptime_estimator", output_size=len(valid_taptimes), summaries_dir=None)
+angle_target_estimator = q_network.DQN_Estimator(scope="taptime_target_estimator", output_size=len(valid_taptimes)) 
+# angle_estimator, angle_target_estimator = DQN_Estimator(obs_size, sess, fe, sc_parser, "angle", valid_angles) # 수정 필요
+# taptime_estimator, taptime_target_estimator = DQN_Estimator(obs_size, sess, fe, sc_parser, "taptime", valid_taptimes) # 수정 필요 
 
 ########################
+
+sess.run(tf.global_variables_initializer())
+
 saver = tf.train.Saver()
 
 latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir)
@@ -146,7 +148,10 @@ if latest_checkpoint:
 	print("Loading model checkpoint {}...\n".format(latest_checkpoint))
 	saver.restore(sess, latest_checkpoint)
 
-total_t = sess.run(tf.train.get_global_step()) # ... ?
+try: 
+	total_t = sess.run(tf.train.get_global_step()) 
+except:
+	total_t = 0
 
 epsilon_start = 1.0
 epsilon_end = 0.1
@@ -174,64 +179,150 @@ replay_memory = []
 ##### Checkpoint load
 # replay memory로 pre_train한 network를 쓴다면, 여기서 load
 
+num_episodes = 10
 ####################################################################################
 print('Start Learning!') ### 게임을 하면서, 학습을 하면서, policy를 업데이트 ##########
 ####################################################################################
 
-# game_state: unknown, main, episode_menu, level_selection, loading, playing, won, lost
-
-print('Learning with real episodes...')
-
-for i_episode in range(num_episodes): # while 
+for i_episode in range(num_episodes): # 문제가 있음: 다른 메뉴 --> playing으로 갈때, i_episode가 증가... 
+									  # 여기를 while로 바꾸고, 다른 방법으로 i_episode를 count해야 할 듯
 	
-	state = comm_get_state(s, silent=False)
+	episode_dir = "%s_%d"%(run_start_dir,i_episode) 
+	if not os.path.exists(episode_dir):
+			os.mkdir(episode_dir) 
 
-	if state==UNKNOWN:
+	game_state = comm.comm_get_state(s, silent=False)
+
+	if game_state=='UNKNOWN':
 		print ("########################################################")
 		print ("Unknown state")
 		pass
-	elif state==MAIN_MENU:
+	elif game_state=='MAIN_MENU':
 		print ("########################################################")
 		print ("Main menu state")
 		pass
-	elif state==EPISODE_MENU:
+	elif game_state=='EPISODE_MENU':
 		print ("########################################################")
 		print ("Episode menu state")
 		pass
-	elif state==LEVEL_SELECTION:
+	elif game_state=='LEVEL_SELECTION':
+		loss = None
+		
 		print ("########################################################")
 		print ("Level selection state")
 
+		comm.comm_load_level(s, 1, silent=False)
+
 		print ("level is loaded")
-	elif state==LOADING:
+
+	elif game_state=='LOADING':
 		print ("########################################################")
 		print ("Loading state")
 		pass
-	elif state==WON:
+	elif game_state=='WON':
 		print ("########################################################")
 		print ("Won state")
 		# resater random level
 
-	elif state==LOST:
+	elif game_state=='LOST':
 		print ("########################################################")
 		print ("Lost state")
 		# restart random level 
 
-	elif state==PLAYING:
+	elif game_state=='PLAYING':
 		print ("########################################################")
 		print ("Playing state")
 
-		saver.save(tf.get_default_session(), checkpoint_path)
+		# saver.save(tf.get_default_session(), checkpoint_path) # tf.get_default_session()이 none이 됨...
+		saver.save(sess, checkpoint_path)
+		current_level = comm.comm_get_current_level(s)
+		last_score = 0;
+
+		print("=============== Level",current_level,"===============")
 
 		for t in itertools.count(): # 이 에피소드가 끝날때까지
 			
-			if total_t % update_target_estimator_every == 0:
-				print("Copying model parameters to target Q network...")
-				copy_model_parameter()
-			
-			# state 받기? 샷 찍음, 
+			if t==0:
+				last_score = 0;
+
+			shot_dir = os.path.join(episode_dir, "level%d_shot%d_%s"%(current_level, t, time.strftime('%Y%m%d_%H%M%S')))
+			if not os.path.exists(shot_dir):
+				os.mkdir(shot_dir)
+
+			screenshot_path = shot_dir+"/s_%d.png"%t
+			state_raw_img = comm.comm_do_screenshot(s, screenshot_path)
+			save_path = screenshot_path+"_seg.png"
+			state_img = wrapper.save_seg(screenshot_path, save_path) # 함수 안에서 크기조절 
+			state = dqn_utils.get_feature_4096(vgg16, save_path) #(1,4096)
 
 			print('Choose action from given Q network model')
+
+			# Epsilon for this time step
+			epsilon = epsilons[min(total_t, epsilon_decay_steps-1)]
+
+			# Add epsilon to Tensorboard
+			# episode_summary = tf.Summary()
+			# episode_summary.value.add(simple_value=epsilon, tag="epsilon")
+			# q_estimator.summary_writer.add_summary(episode_summary, total_t)
+
+			# Maybe update the target estimator
+			if total_t % update_target_estimator_every == 0:
+				pass # 여기 다시 만들어야 함 오류 팡팡팡
+				# dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
+				# dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
+				# print("\nCopied model parameters to target network.")
+			
+			pdb.set_trace()   
+			# Print out which step we're on, useful for debugging.
+			print("\rStep {} ({}) @ Episode {}/{}, loss: {}".format(
+			        t, total_t, i_episode + 1, num_episodes, loss), end="")
+			sys.stdout.flush() # ?
+
+			# Take a step (현재 policy로 다음 action을 정하네)
+			angle_action_probs = angle_policy(sess, state, epsilon)
+			taptime_action_probs = taptime_policy(sess, state, epsilon)
+			
+			angle_action_idx = np.random.choice(np.arange(len(angle_action_probs)), p=angle_action_probs)
+			taptime_action_idx = np.random.choice(np.arange(len(taptime_action_probs)), p=taptime_action_probs)
+
+			# make shot for shooting
+			slingshot_rect = wrap.get_slingshot(screenshot_path = screenshot_path)
+			ref_point = wrap.get_slingshot_refpoint(slingshot = slingshot_rect, silent = False)
+			max_mag = slingshot_rect[3]
+			angle_action = valid_angles[angle_action_idx]
+			taptime_action = valid_taptime[taptime_action_idx]
+			dx = -max_mag * math.cos(angle_action)
+			dy = max_mag * math.sin(angle_action)
+			
+			# shoot
+			shoot_complete = comm.comm_c_shoot_fast(s,ref_point[0], ref_point[1], dx, dy, 0, 0)
+			if taptime_action >0:
+				time.sleep(taptime_action)
+				is_clicked = comm.comm_click_in_center(s)
+
+			temp = get_score_in_game(self, screenshot_path)
+
+
+
+			next_state, reward, done, _ = env.step(VALID_ACTIONS[action])
+			
+			next_state = state_processor.process(sess, next_state)
+			next_state = np.append(state[:,:,1:], np.expand_dims(next_state, 2), axis=2)
+
+			# If our replay memory is full, pop the first element
+			if len(replay_memory) == replay_memory_size:
+			    replay_memory.pop(0)
+
+			# Save transition to replay memory
+			replay_memory.append(Transition(state, action, reward, next_state, done))   
+
+			# Update statistics
+			stats.episode_rewards[i_episode] += reward # i_episode번째의 episode의 총 reward를 얻기 위해 계속 누적
+			stats.episode_lengths[i_episode] = t # i_episode번째의 길이를 얻기 위해 t 값으로 계속 저장
+
+
+
+
 
 			# action
 
