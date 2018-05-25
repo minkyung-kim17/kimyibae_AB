@@ -192,7 +192,7 @@ replay_memory = []
 print('Start Learning!') ### 게임을 하면서, 학습을 하면서, policy를 업데이트 ##########
 ####################################################################################
 
-load_level = 1
+load_level = 2
 angle_action_idx = 0
 angle_action = valid_angles[angle_action_idx]
 i_episode=0
@@ -270,14 +270,10 @@ while True:
 		# saver.save(tf.get_default_session(), checkpoint_path) # tf.get_default_session()이 none이 됨...
 		# saver.save(sess, checkpoint_path)
 		current_level = comm.comm_get_current_level(s)
-		last_score = 0;
 
 		print("=============== Level",current_level,"===============")
 
 		for t in itertools.count(): # 이 에피소드가 끝날때까지
-
-			if t==0:
-				last_score = 0;
 
 			shot_dir = os.path.join(episode_dir, "level%d_shot%d_%s"%(current_level, t, time.strftime('%Y%m%d_%H%M%S')))
 			if not os.path.exists(shot_dir):
@@ -328,7 +324,6 @@ while True:
 			# taptime_action = valid_taptimes[taptime_action_idx]
 			if t==0:
 				angle_action = valid_angles[angle_action_idx]
-				print("shotnumber%d angle_action%d"%(t, angle_action))
 			else:
 				temp_index = np.random.choice(np.arange(len(angle_action_probs)), p=angle_action_probs)
 				angle_action = valid_angles[temp_index]
@@ -338,7 +333,7 @@ while True:
 			action = [angle_action, taptime_action]
 
 			# shoot
-			print(angle_action, taptime_action)
+			print("angle_action, taptime_action" angle_action, taptime_action)
 			start_score = wrapper.get_score_in_game(screenshot_path)
 			shoot_complete = comm.comm_c_shoot_fast(s,ref_point[0], ref_point[1], dx, dy, 0, 0)
 			if taptime_action >0:
@@ -348,6 +343,7 @@ while True:
 			# pdb.set_trace() ##
 
 			reward, new_score, next_screenshot_path, game_state = dqn_utils.get_score_after_shot(current_dir, wrapper, s, start_score)
+			print("start_score, reward, new_score : "start_score, reward, new_score)
 
 			screenshot_path = shot_dir+"/s_%d.png"%(t+1)
 			shutil.copy(next_screenshot_path, screenshot_path)
