@@ -197,6 +197,23 @@ def comm_load_level(s, level_num, silent=True):
 			print ("\t\treturn %d. failed to load level %d" % level_num)
 	return ret_status
 
+def comm_restart_level(s, silent=True):
+	if not silent:
+		print ("\t[OPERATION]: load level %d" % level_num),
+	s.sendall(get_hex_MID(MID_RESTARTLEVEL))
+	data = s.recv(4)
+	hex_str = binascii.hexlify(data)
+
+	ret_status = hex_to_int(hex_str)
+	if not silent:
+		if ret_status == 1:
+			# print('in comm.py')
+			# pdb.set_trace()
+			print ("\t\treturn 1. level reloaded")
+		else:
+			print ("\t\treturn %d. failed to reload."%ret_status)
+	return ret_status
+
 def comm_get_state(s, silent=True):
 	if not silent:
 		print ("\t[OPERATION]: get state"),
@@ -228,7 +245,7 @@ def comm_fully_zoomout(s, silent=True):
 				print ("\t\treturn 1. fully zoomed out")
 		else:
 				print ("\t\treturn %d. failed to zoom out" % ret_status)
-	
+
 	return ret_status
 
 def comm_fully_zoomin(s, silent=True):
@@ -244,7 +261,7 @@ def comm_fully_zoomin(s, silent=True):
 			print ("\t\treturn 1. fully zoomed in")
 		else:
 			print ("\t\treturn %d. failed to zoom in" % ret_status)
-	
+
 	return ret_status
 
 def comm_get_best_scores(s, show_scores=True, silent=True):
@@ -278,10 +295,10 @@ def comm_do_screenshot(s, save_path=None, silent=True):
 		s.sendall(bytes(get_hex_MID(MID_DOSCREENSHOT)))
 		w_h_data = s.recv(4+4)
 		hex_str = binascii.hexlify(w_h_data) # type: 'bytes'
-		
+
 		width = hex_to_int(hex_str[:8], is_reverse=False)
 		height = hex_to_int(hex_str[8:16], is_reverse=False)
-    
+
 		# print(width)
 		# print(height)
 		# pdb.set_trace()
@@ -306,4 +323,3 @@ def comm_do_screenshot(s, save_path=None, silent=True):
 		print ("ERROR: exception occurred in do_screenshot")
 		print (str(e))
 		return None
-		
