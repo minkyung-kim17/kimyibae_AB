@@ -1,3 +1,4 @@
+import time
 import numpy as np
 
 import tensorflow as tf
@@ -6,6 +7,8 @@ from tensorflow.python.keras.preprocessing import image
 from tensorflow.python.keras.models import Model
 import numpy as np
 from PIL import Image
+
+import comm
 
 import pdb
 
@@ -25,14 +28,15 @@ def make_epsilon_greedy_policy(estimator, nA):
     """
     # pdb.set_trace()
     def policy_fn(sess, observation, epsilon):
+        A = np.ones(nA, dtype=float) * epsilon / nA # action 수 만큼의 길이
         # pdb.set_trace()
-        A = np.ones(nA, dtype=float) * epsilon / nA
         q_values = estimator.predict(sess, np.expand_dims(observation, 0))[0]
+        # q_values = estimator.predict(sess, observation)[0]
+        # pdb.set_trace()
         best_action = np.argmax(q_values)
-        A[best_action] += (1.0 - epsilon) # ?
+        A[best_action] += (1.0 - epsilon)
         return A
     return policy_fn
-
 
 def get_feature_4096(model, img_path, need_crop = True, need_resize = True):
     '''
@@ -47,14 +51,16 @@ def get_feature_4096(model, img_path, need_crop = True, need_resize = True):
 
     if need_crop == True:
         im = im.crop((70,45,760,390))
-    if need_resize = True:
+    if need_resize == True:
         im = im.resize((224,224))
 
     x = image.img_to_array(im)
     x = np.expand_dims(x, axis=0)
     x = preprocess_input(x)
 
-    return model_4096.predict(x)
+    # pdb.set_trace()
+
+    return model_4096.predict(x).reshape(4096)
 
 def copy_model_parameters(sess, estimator1, estimator2):
     """
@@ -78,7 +84,7 @@ def copy_model_parameters(sess, estimator1, estimator2):
 
     sess.run(update_ops)
 
-def get_score_after_shot(parser, comm_socket, start_score):
+def get_score_after_shot(current_dir, parser, comm_socket, start_score):
     """
     Get score after shot.
 
@@ -91,7 +97,8 @@ def get_score_after_shot(parser, comm_socket, start_score):
       new_score (last_score)
       save_path (next state raw image path. WON or LOST should be captured at terminal state.)
       state (PLAYING or WON or LOST)
-    """
+    """ 
+
     end_image = None
     save_path = None
     screenshot = None
@@ -102,33 +109,39 @@ def get_score_after_shot(parser, comm_socket, start_score):
     while True:
         # check the status of the screenshot
         save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
-        screenshot = comm_do_screenshot(comm_socket, save_path=save_path)
+        screenshot = comm.comm_do_screenshot(comm_socket, save_path=save_path)
         score  = parser.get_score_in_game(save_path)
 
         # if the new score is less than the last score, something went wrong, just return the last status
-        if (score > last_score)
+        if (score > last_score):
             end_image = screenshot
             last_score = score
             sleepcount = 0
 
         # PLAYING / WON / LOST
         elif last_score==score:
-            if comm_get_state(comm_socket) == WON || comm_get_state(comm_socket) == LOST:
+            if (comm.comm_get_state(comm_socket) == 'WON') or (comm.comm_get_state(comm_socket) == 'LOST'):
                 save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
-                end_image = comm_do_screenshot(comm_socket, save_path=save_path)
+                end_image = comm.comm_do_screenshot(comm_socket, save_path=save_path)
                 break
             time.sleep(1)
             sleepcount+=1
             if sleepcount>=10:
                 save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
-                end_image = comm_do_screenshot(comm_socket, save_path=save_path)
+                end_image = comm.comm_do_screenshot(comm_socket, save_path=save_path)
                 break
 
         else: # last_score > score: # LOST
             save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
-            end_image = comm_do_screenshot(comm_socket, save_path=save_path)
+            end_image = comm.comm_do_screenshot(comm_socket, save_path=save_path)
             break
 
         # if the no change count and passed time are enough, return.
-    state = comm_get_state(comm_socket)
+    state = comm.comm_get_state(comm_socket)
     return last_score-start_score, last_score, save_path, state
+
+def clear_screenshot(path):
+    import os, glob
+    l = glob.glob(os.path.join(path, '*'))
+    for f in l:
+        os.remove(f)
