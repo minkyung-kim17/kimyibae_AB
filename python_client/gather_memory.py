@@ -192,7 +192,7 @@ replay_memory = []
 print('Start Learning!') ### 게임을 하면서, 학습을 하면서, policy를 업데이트 ##########
 ####################################################################################
 
-load_level = 2
+load_level = 1
 angle_action_idx = 0
 angle_action = valid_angles[angle_action_idx]
 i_episode=0
@@ -333,7 +333,7 @@ while True:
 			action = [angle_action, taptime_action]
 
 			# shoot
-			print("angle_action, taptime_action" angle_action, taptime_action)
+			print("angle_action, taptime_action ", angle_action, taptime_action)
 			start_score = wrapper.get_score_in_game(screenshot_path)
 			shoot_complete = comm.comm_c_shoot_fast(s,ref_point[0], ref_point[1], dx, dy, 0, 0)
 			if taptime_action >0:
@@ -343,7 +343,7 @@ while True:
 			# pdb.set_trace() ##
 
 			reward, new_score, next_screenshot_path, game_state = dqn_utils.get_score_after_shot(current_dir, wrapper, s, start_score)
-			print("start_score, reward, new_score : "start_score, reward, new_score)
+			print("start_score, reward, new_score : ",start_score, reward, new_score)
 
 			screenshot_path = shot_dir+"/s_%d.png"%(t+1)
 			shutil.copy(next_screenshot_path, screenshot_path)
