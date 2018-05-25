@@ -113,6 +113,7 @@ def get_score_after_shot(current_dir, parser, comm_socket, start_score):
         score  = parser.get_score_in_game(save_path)
 
         # if the new score is less than the last score, something went wrong, just return the last status
+        # pdb.set_trace()
         if (score > last_score):
             end_image = screenshot
             last_score = score
@@ -120,7 +121,7 @@ def get_score_after_shot(current_dir, parser, comm_socket, start_score):
 
         # PLAYING / WON / LOST
         elif last_score==score:
-            if (comm.comm_get_state(comm_socket) == 'LOST'):
+            if (comm.comm_get_state(comm_socket) == 'LOST' or comm.comm_get_state(comm_socket) == 'WON'):
                 save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
                 end_image = comm.comm_do_screenshot(comm_socket, save_path=save_path)
                 break
@@ -131,14 +132,13 @@ def get_score_after_shot(current_dir, parser, comm_socket, start_score):
                 end_image = comm.comm_do_screenshot(comm_socket, save_path=save_path)
                 break
 
-        else: # last_score > score: # LOST
-            # WON 화면이 뜨면서 점수가 0부터 주르륵 올라감.... 점수가 다시 작아졌다가 올라갈 수 있음
-            if (comm.comm_get_state(comm_socket) == 'WON'):
-                pass
-            elif (comm.comm_get_state(comm_socket) == 'LOST'):
+        else: # last_score > score:
+            if comm.comm_get_state(comm_socket) == 'WON' or comm.comm_get_state(comm_socket) == 'LOST':
                 save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
                 end_image = comm.comm_do_screenshot(comm_socket, save_path=save_path)
                 break
+            else:
+                print("something wrong...")
 
         # if the no change count and passed time are enough, return.
     state = comm.comm_get_state(comm_socket)

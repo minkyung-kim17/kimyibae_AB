@@ -218,7 +218,7 @@ def comm_get_state(s, silent=True):
 	if not silent:
 		print ("\t[OPERATION]: get state"),
 	#s.connect((HOST,PORT))
-	s.sendall(bytes(get_hex_MID(MID_GETSTATE)))
+	s.sendall(get_hex_MID(MID_GETSTATE))
 	data = s.recv(1)
 	hex_str = binascii.hexlify(data)
 	#s.close()
@@ -292,7 +292,7 @@ def comm_do_screenshot(s, save_path=None, silent=True):
 	try:
 		if not silent:
 			print ("\t[OPERATION]: do screenshot"),
-		s.sendall(bytes(get_hex_MID(MID_DOSCREENSHOT)))
+		s.sendall(get_hex_MID(MID_DOSCREENSHOT))
 		w_h_data = s.recv(4+4)
 		hex_str = binascii.hexlify(w_h_data) # type: 'bytes'
 
