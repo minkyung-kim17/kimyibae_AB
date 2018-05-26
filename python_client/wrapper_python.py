@@ -30,14 +30,14 @@ class WrapperPython:
 			print ("found")
 		# pdb.set_trace()
 		return slingshot_rect
-	
+
 	def get_slingshot_refpoint(self, slingshot, silent=True):
 		X_OFFSET = 0.5
 		Y_OFFSET = 0.65
 		x = slingshot[0]+slingshot[2]*X_OFFSET
 		y = slingshot[1]+slingshot[2]*Y_OFFSET
 		return (x,y)
-	
+
 	def get_blocks(self, screenshot_path, silent=True):
 		if not silent:
 			print ("\tFind blocks..."),
@@ -90,6 +90,10 @@ class WrapperPython:
 				bird.append(bird_java[i])
 			birds.append(bird)
 		return birds
-	
+
 	def get_score_in_game(self, screenshot_path):
 		return self.entry_point.getScoreInGame(self.java_str(screenshot_path))
+	def get_score_end_game(self, screenshot_path):
+		return self.entry_point.getScoreEndGame(self.java_str(screenshot_path))
+	def get_score_game(self, screenshot_path, game_state):
+		return self.entry_point.getScoreGame(self.java_str(screenshot_path), self.java_str(game_state))

@@ -69,6 +69,39 @@ public class NaiveWrapper {
 			return -1;
 		}
 	}
+	public int getScoreEndGame(String path){
+		try{
+			//File file = new File("/home/jongchan/Projects/AIBIRD/LEARNERSHIGH/AB_Wrap/screenshot.png");
+			File file = new File(path);
+			BufferedImage screenshot = ImageIO.read(file);
+			int score = gse.getScoreEndGame(screenshot);
+			System.out.println("score:"+score);
+			return score;
+		}catch (IOException e){
+			System.err.println("failed to load resources");
+			e.printStackTrace();
+			return -1;
+		}
+	}
+	public int getScoreGame(String path, String game_state){
+		try{
+			//File file = new File("/home/jongchan/Projects/AIBIRD/LEARNERSHIGH/AB_Wrap/screenshot.png");
+			File file = new File(path);
+			BufferedImage screenshot = ImageIO.read(file);
+			int score = 0;
+			if (game_state == "PLAYING")
+				score = gse.getScoreInGame(screenshot);
+			else
+				score = gse.getScoreEndGame(screenshot);
+
+			System.out.println("score:"+score);
+			return score;
+		}catch (IOException e){
+			System.err.println("failed to load resources");
+			e.printStackTrace();
+			return -1;
+		}
+	}
 
 	public int[] findSlingshot(String path){
 		try{

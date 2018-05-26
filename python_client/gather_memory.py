@@ -128,8 +128,9 @@ sess = tf.Session()
 vgg16 = VGG16(weights= 'imagenet')
 
 # set the action sets
-valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
-valid_taptimes = (np.array((range(500, 2501, 100)))/1000).tolist() # 500부터 2500까지 100씩 증가
+valid_angles = list(range(5, 86, 1)) # 5도부터 85도까지 5도씩 증가
+# valid_taptimes = np.array((range(500, 2501, 100)))/1000).tolist() # 500부터 2500까지 100씩 증가
+valid_taptimes = list(range(500, 2501, 100)) # 500부터 2500까지 100씩 증가
 
 angle_estimator = q_network.DQN_Estimator(scope="angle_estimator", output_size=len(valid_angles), summaries_dir=None)
 angle_target_estimator = q_network.DQN_Estimator(scope="angle_target_estimator", output_size=len(valid_angles))
@@ -323,6 +324,7 @@ while True:
 			# angle_action = valid_angles[angle_action_idx]
 			# taptime_action = valid_taptimes[taptime_action_idx]
 			if t==0:
+				# angle_action = 30
 				angle_action = valid_angles[angle_action_idx]
 			else:
 				temp_index = np.random.choice(np.arange(len(angle_action_probs)), p=angle_action_probs)
@@ -335,17 +337,17 @@ while True:
 			# shoot
 			print("angle_action, taptime_action ", angle_action, taptime_action)
 			start_score = wrapper.get_score_in_game(screenshot_path)
-			shoot_complete = comm.comm_c_shoot_fast(s,ref_point[0], ref_point[1], dx, dy, 0, 0)
-			if taptime_action >0:
-				time.sleep(taptime_action)
-				is_clicked = comm.comm_click_in_center(s)
+			shoot_complete = comm.comm_c_shoot_fast(s,ref_point[0], ref_point[1], dx, dy, 0, taptime_action)
+			# if taptime_action >0:
+			# 	time.sleep(taptime_action)
+			# 	is_clicked = comm.comm_click_in_center(s)
 
 			# pdb.set_trace() ##
 
 			reward, new_score, next_screenshot_path, game_state = dqn_utils.get_score_after_shot(current_dir, wrapper, s, start_score)
 			print("start_score, reward, new_score : ",start_score, reward, new_score)
 
-			screenshot_path = shot_dir+"/s_%d.png"%(t+1)
+			screenshot_path = shot_dir+"/s_%d_%d_%d_%s.png"%(t+1, angle_action, taptime_action, game_state)
 			shutil.copy(next_screenshot_path, screenshot_path)
 			save_path = screenshot_path+"_seg.png"
 			state_img = wrapper.save_seg(screenshot_path, save_path)

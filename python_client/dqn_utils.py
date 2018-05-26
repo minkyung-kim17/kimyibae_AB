@@ -110,10 +110,14 @@ def get_score_after_shot(current_dir, parser, comm_socket, start_score):
         # check the status of the screenshot
         save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
         screenshot = comm.comm_do_screenshot(comm_socket, save_path=save_path)
-        score  = parser.get_score_in_game(save_path)
+        if comm.comm_get_state(comm_socket) == 'WON':
+            score = parser.get_score_end_game(save_path)
+        else:
+            score  = parser.get_score_in_game(save_path)
 
         # if the new score is less than the last score, something went wrong, just return the last status
         # pdb.set_trace()
+
         if (score > last_score):
             end_image = screenshot
             last_score = score
@@ -121,9 +125,15 @@ def get_score_after_shot(current_dir, parser, comm_socket, start_score):
 
         # PLAYING / WON / LOST
         elif last_score==score:
-            if (comm.comm_get_state(comm_socket) == 'LOST' or comm.comm_get_state(comm_socket) == 'WON'):
+            if (comm.comm_get_state(comm_socket) == 'LOST'):
                 save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
                 end_image = comm.comm_do_screenshot(comm_socket, save_path=save_path)
+                break
+            if comm.comm_get_state(comm_socket) == 'WON':
+                time.sleep(1)
+                save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
+                end_image = comm.comm_do_screenshot(comm_socket, save_path=save_path)
+                last_score = parser.get_score_end_game(save_path)
                 break
             time.sleep(1)
             sleepcount+=1
@@ -136,7 +146,10 @@ def get_score_after_shot(current_dir, parser, comm_socket, start_score):
             if comm.comm_get_state(comm_socket) == 'WON' or comm.comm_get_state(comm_socket) == 'LOST':
                 save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
                 end_image = comm.comm_do_screenshot(comm_socket, save_path=save_path)
-                break
+                if comm.comm_get_state(comm_socket) == 'WON':
+                    last_score = parser.get_score_end_game(save_path)
+                else:
+                    break
             else:
                 print("something wrong...")
 
