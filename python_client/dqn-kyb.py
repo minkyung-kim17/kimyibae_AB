@@ -92,7 +92,7 @@ EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
 
 
 stats = EpisodeStats( # level별 episode_length랑, episode_reward를 저장해 둘 수 있는 list
-        episode_lengths=[[] for i in range(21)], 
+        episode_lengths=[[] for i in range(21)],
         episode_rewards=[[] for i in range(21)])
 
 # pdb.set_trace()
@@ -144,16 +144,16 @@ with tf.Session() as sess:
 	# 	pickle.dump(pretrain_memory, f)
 	with open(os.path.join(EXP_PATH, 'pretrain_memory_5'), 'rb') as f:
 		pretrain_memory = pickle.load(f)
-	def run_pretrain():
-		while True:
-			dqn_utils.pretrain(pretrain_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor)
-	threads= []
-	import threading
-	num_threads=1
-	for i in range(num_threads):
-		t=threading.Thread(target=run_pretrain)
-		threads.append(t)
-		t.start()
+	# def run_pretrain():
+	while True:
+		dqn_utils.pretrain(pretrain_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor)
+	# threads= []
+	# import threading
+	# num_threads=1
+	# for i in range(num_threads):
+	# 	t=threading.Thread(target=run_pretrain)
+	# 	threads.append(t)
+	# 	t.start()
 
 	# replay memory로 pre_train한 network를 쓴다면, 여기서 load
 
@@ -389,10 +389,10 @@ with tf.Session() as sess:
 			# 아래에서 node_name을 여러개 만들어서, 조건문?으로 각 level별 stat을 찍으면 될것 같음!
 			# pdb.set_trace()
 			# for i in range(21):
-				# episode_summary.value.add(simple_value=stats.episode_rewards[i][-1], node_name="episode_reward_Level_%d"%(i+1), tag="episode_reward_Level_%d"%(i+1)) 
+				# episode_summary.value.add(simple_value=stats.episode_rewards[i][-1], node_name="episode_reward_Level_%d"%(i+1), tag="episode_reward_Level_%d"%(i+1))
 				# episode_summary.value.add(simple_value=stats.episode_lengths[i][-1], node_name="episode_length_Level_%d"%(i+1), tag="episode_length_Level_%d"%(i+1))
 
-			episode_summary.value.add(simple_value=stats.episode_rewards[current_level-1][-1], node_name="episode_reward_Level_%d"%(current_level), tag="episode_reward_Level_%d"%(current_level)) 
+			episode_summary.value.add(simple_value=stats.episode_rewards[current_level-1][-1], node_name="episode_reward_Level_%d"%(current_level), tag="episode_reward_Level_%d"%(current_level))
 			episode_summary.value.add(simple_value=stats.episode_lengths[current_level-1][-1], node_name="episode_length_Level_%d"%(current_level), tag="episode_length_Level_%d"%(current_level))
 
 			angle_estimator.summary_writer.add_summary(episode_summary, total_t)
