@@ -25,7 +25,7 @@ dqn_logger.addHandler(logging.FileHandler("dqn_logger.log"))
 # path 설정 ...
 current_path = inspect.getfile(inspect.currentframe())
 current_dir = os.path.dirname(os.path.abspath(current_path))
-EXP_PATH=os.path.join(current_dir,"experiences")
+EXP_PATH=os.path.join(current_dir,"experiences_gathering")
 SCR_PATH=os.path.join(current_dir,"screenshots")
 SUMM_PATH=os.path.join(current_dir, "tensorboard") # tf.summary dir
 
@@ -90,8 +90,8 @@ taptime_target_estimator = q_network.DQN_Estimator(scope="taptime_target_estimat
 # Keeps track of useful statistics
 EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
 num_episodes = 500000 # 임시로 저장
-stats = EpisodeStats( # level별 episode_length랑, episode_reward를 저장해 둘 수 있는 matrix 
-        episode_lengths=np.zeros((21, num_episodes)), 
+stats = EpisodeStats( # level별 episode_length랑, episode_reward를 저장해 둘 수 있는 matrix
+        episode_lengths=np.zeros((21, num_episodes)),
         episode_rewards=np.zeros((21, num_episodes)))
 ########################
 
@@ -109,7 +109,7 @@ with tf.Session() as sess:
 
 	total_t = sess.run(tf.train.get_global_step()) # 처음에 안됐었던 이유는, global_step이란 tensor 변수를 안만들어서임
 
-	## 
+	##
 	epsilon_start = 1.0
 	epsilon_end = 0.1
 	epsilon_decay_steps = 500000
@@ -128,6 +128,8 @@ with tf.Session() as sess:
 	# 원래는 랜덤하게 N번의 shot을 해서 replay_memory를 채워야 하지만...
 	# 각 레벨별로, 0도부터 90도까지 쏜 데이터를 replay_memory로 함.
 	# pre_train을 넣어서, 이 replay_memory로 학습을 한 weight를 가져와서 시작하는 것도 고려.
+	batch_size = 6
+	discount_factor = 0.99
 	Transition = namedtuple("Transition", ["state", "action", "reward", "next_state", "game_state"])
 	replay_memory_size = 500000
 	print('Populating replay memory...')
@@ -136,6 +138,22 @@ with tf.Session() as sess:
 
 	#####################
 	##### Checkpoint load
+	# pretrain_memory = dqn_utils.init_replaymemory(5, EXP_PATH, current_dir, vgg16)
+	# with open(os.path.join(EXP_PATH, 'pretrain_memory_5'), 'wb') as f:
+	# 	pickle.dump(pretrain_memory, f)
+	with open(os.path.join(EXP_PATH, 'pretrain_memory_5'), 'rb') as f:
+		pretrain_memory = pickle.load(f)
+	def run_pretrain():
+		while True:
+			dqn_utils.pretrain(pretrain_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor)
+	threads= []
+	import threading
+	num_threads=1
+	for i in range(num_threads):
+		t=threading.Thread(target=run_pretrain)
+		threads.append(t)
+		t.start()
+
 	# replay memory로 pre_train한 network를 쓴다면, 여기서 load
 
 	# pdb.set_trace()
@@ -228,10 +246,10 @@ with tf.Session() as sess:
 				epsilon = epsilons[min(total_t, epsilon_decay_steps-1)]
 
 				# Add epsilon to Tensorboard
-				episode_summary = tf.Summary() # 수정: 
+				episode_summary = tf.Summary() # 수정:
 				episode_summary.value.add(simple_value=epsilon, tag="epsilon")
 				angle_estimator.summary_writer.add_summary(episode_summary, total_t)
-				taptime_estimator.summary_writer.add_summary(episode_summary, total_t)	
+				taptime_estimator.summary_writer.add_summary(episode_summary, total_t)
 
 				# Update the target estimator
 				if total_t % update_target_estimator_every == 0:
@@ -254,7 +272,10 @@ with tf.Session() as sess:
 				taptime_action_idx = np.random.choice(np.arange(len(taptime_action_probs)), p=taptime_action_probs)
 
 				# make shot for shooting
-				slingshot_rect = wrapper.get_slingshot(screenshot_path = screenshot_path)
+				slingshot_rect = None
+				while(slingshot_rect == None):
+
+					slingshot_rect = wrapper.get_slingshot(screenshot_path = screenshot_path)
 				ref_point = dqn_utils.get_slingshot_refpoint(slingshot = slingshot_rect)
 				max_mag = slingshot_rect[3]
 				angle_action = valid_angles[angle_action_idx]
@@ -294,42 +315,43 @@ with tf.Session() as sess:
 				stats.episode_lengths[current_level][i_episode] = t # i_episode번째의 길이를 얻기 위해 t 값으로 계속 저장
 
 				# minibatch로 q network weight update
-				batch_size = 6
-				discount_factor = 0.99
+
 
 				if len(replay_memory) > batch_size:
-					samples = random.sample(replay_memory, batch_size)
-					states_batch, action_batch, reward_batch, next_states_batch, game_state_batch = map(np.array, zip(*samples))
-					# (1,1,4096) (1,2) (1,) (1,)
-
-					done_batch = np.array([1 if (game_state =='LOST' or 'WON') else 0 for game_state in game_state_batch])
-
-					# angle_action_batch = np.array([action_batch[i][0] for i in range(batch_size)])
-					# taptime_action_batch = np.array([action_batch[i][1] for i in range(batch_size)])
-
-					angle_action_batch_idx = np.array([valid_angles.index(action_batch[i][0]) for i in range(batch_size)])
-					taptime_action_batch_idx = np.array([valid_taptimes.index(action_batch[i][1]) for i in range(batch_size)])
-
-					# 학습에 넣을 target reward 계산
-
-					angle_q_values_next = angle_estimator.predict(sess, next_states_batch)
-					best_angle_actions = np.argmax(angle_q_values_next, axis=1)
-					taptime_q_values_next = taptime_estimator.predict(sess, next_states_batch)
-					best_taptime_actions = np.argmax(taptime_q_values_next, axis=1)
-
-					angle_q_values_next_target = angle_target_estimator.predict(sess, next_states_batch)
-					taptime_q_values_next_target = taptime_target_estimator.predict(sess, next_states_batch)
-
-					angle_targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * \
-			            discount_factor * angle_q_values_next_target[np.arange(batch_size), best_angle_actions]
-
-					taptime_targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * \
-			            discount_factor * taptime_q_values_next_target[np.arange(batch_size), best_taptime_actions]
-
-					# Perform gradient descent update
-					states_batch = np.array(states_batch)
-					angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch_idx, angle_targets_batch)
-					taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
+					angle_loss, taptime_loss = dqn_utils.pretrain(replay_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor)
+					# samples = random.sample(replay_memory, batch_size)
+					# states_batch, action_batch, reward_batch, next_states_batch, game_state_batch = map(np.array, zip(*samples))
+					# reward_batch = np.clip(reward_batch/10000, 0, 6)
+					# # (1,1,4096) (1,2) (1,) (1,)
+					#
+					# done_batch = np.array([1 if (game_state =='LOST' or 'WON') else 0 for game_state in game_state_batch])
+					#
+					# # angle_action_batch = np.array([action_batch[i][0] for i in range(batch_size)])
+					# # taptime_action_batch = np.array([action_batch[i][1] for i in range(batch_size)])
+					#
+					# angle_action_batch_idx = np.array([valid_angles.index(action_batch[i][0]) for i in range(batch_size)])
+					# taptime_action_batch_idx = np.array([valid_taptimes.index(action_batch[i][1]) for i in range(batch_size)])
+					#
+					# # 학습에 넣을 target reward 계산
+					#
+					# angle_q_values_next = angle_estimator.predict(sess, next_states_batch)
+					# best_angle_actions = np.argmax(angle_q_values_next, axis=1)
+					# taptime_q_values_next = taptime_estimator.predict(sess, next_states_batch)
+					# best_taptime_actions = np.argmax(taptime_q_values_next, axis=1)
+					#
+					# angle_q_values_next_target = angle_target_estimator.predict(sess, next_states_batch)
+					# taptime_q_values_next_target = taptime_target_estimator.predict(sess, next_states_batch)
+					#
+					# angle_targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * \
+			        #     discount_factor * angle_q_values_next_target[np.arange(batch_size), best_angle_actions]
+					#
+					# taptime_targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * \
+			        #     discount_factor * taptime_q_values_next_target[np.arange(batch_size), best_taptime_actions]
+					#
+					# # Perform gradient descent update
+					# states_batch = np.array(states_batch)
+					# angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch_idx, angle_targets_batch)
+					# taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
 
 					print('Learning done (loss: ', angle_loss, taptime_loss, ')')
 
@@ -346,7 +368,7 @@ with tf.Session() as sess:
 			 # Add summaries to tensorboard
 			episode_summary = tf.Summary()
 			# 아래에서 node_name을 여러개 만들어서, 조건문?으로 각 level별 stat을 찍으면 될것 같음!
-			episode_summary.value.add(simple_value=stats.episode_rewards[current_level][i_episode], node_name="episode_reward", tag="episode_reward") 
+			episode_summary.value.add(simple_value=stats.episode_rewards[current_level][i_episode], node_name="episode_reward", tag="episode_reward")
 			episode_summary.value.add(simple_value=stats.episode_lengths[current_level][i_episode], node_name="episode_length", tag="episode_length")
 			angle_estimator.summary_writer.add_summary(episode_summary, total_t)
 			angle_estimator.summary_writer.flush()
@@ -361,11 +383,11 @@ with tf.Session() as sess:
 
 		print()
 
-	''' 
-	tensorboard 실행 방법: cmd 명령으로 실행 
-	tensorboard --logdir="C:\Users\mkkim\AI Birds\kimyibae_client\tensorboard"
-	그 이후 나온 url 실행 (ex. http://DESKTOP-5KPGCLS:6006)
-	'''
+	###
+	# tensorboard 실행 방법: cmd 명령으로 실행
+	# tensorboard --logdir="C:\Users\mkkim\AI Birds\kimyibae_client\tensorboard"
+	# 그 이후 나온 url 실행 (ex. http://DESKTOP-5KPGCLS:6006)
+	###
 
 	## test()하는 모듈
 
