@@ -168,3 +168,27 @@ def clear_screenshot(path):
     l = glob.glob(os.path.join(path, '*'))
     for f in l:
         os.remove(f)
+
+def init_replaymemory(angle_step, exp_path, current_dir, replay_memory, model_name):
+    import os, glob, pickle
+    if angle_step>1:
+        angles = [i for i in range(5,90) if (i%angle_step==0)]
+    else:
+        angles = range(5,86)
+    dirlist = []
+    for angle in angles:
+        for filename in glob.iglob("%s/*/*/s_?_%d_*_seg.png"%(exp_path, angle)):
+            dirlist.append(os.path.dirname(os.path.abspath(filename)))
+    for dir in dirlist:
+        action, reward= None, None
+        with open(os.path.join(dir, 'action'), 'rb') as f:
+            action = pickle.load(f)
+        with open(os.path.join(dir, 'reward'), 'rb') as f:
+            reward = pickle.load(f)
+        states = glob.glob("%s/*.png_seg.png"%dir)
+        state = get_feature_4096(model=model_name, img_path=states[0])
+        next_state = get_feature_4096(model=model_name, img_path=states[1])
+        # state = get_feature_4096(model=model_name, img_path=os.path.abspath(glob.glob("%s/s_?.png_seg.png"%dir)[0]))
+        # next_state = get_feature_4096(model=model_name, img_path=os.path.abspath(glob.glob("%s/s_?_*_*.png_seg.png"%dir)[0]))
+        replay_memory.append([state, action, reward, next_state])
+    return replay_memory
