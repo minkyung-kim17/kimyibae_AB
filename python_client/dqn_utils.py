@@ -62,24 +62,25 @@ def get_feature_4096(model, img_path, need_crop = True, need_resize = True):
 
     return model_4096.predict(x).reshape(4096)
 
-def copy_model_parameters(sess, estimator1, estimator2):
+def copy_model_parameters(sess, estimator_from, estimator_to):
     """
     Copies the model parameters of one estimator to another.
 
     Args:
       sess: Tensorflow session instance
-      estimator1: Estimator to copy the paramters from
-      estimator2: Estimator to copy the parameters to
+      estimator_from: Estimator to copy the paramters from
+      estimator_to: Estimator to copy the parameters to
     """
     # pdb.set_trace()
-    e1_params = [t for t in tf.trainable_variables() if t.name.startswith(estimator1.scope)]
-    e1_params = sorted(e1_params, key=lambda v: v.name)
-    e2_params = [t for t in tf.trainable_variables() if t.name.startswith(estimator2.scope)]
-    e2_params = sorted(e2_params, key=lambda v: v.name)
+    # pdb.set_trace()
+    e_from_params = [t for t in tf.trainable_variables() if t.name.startswith(estimator_from.scope)]
+    e_from_params = sorted(e_from_params, key=lambda v: v.name)
+    e_to_params = [t for t in tf.trainable_variables() if t.name.startswith(estimator_to.scope)]
+    e_to_params = sorted(e_to_params, key=lambda v: v.name)
 
     update_ops = []
-    for e1_v, e2_v in zip(e1_params, e2_params):
-        op = e2_v.assign(e1_v)
+    for e_from_v, e_to_v in zip(e_from_params, e_to_params):
+        op = e_to_v.assign(e_from_v)
         update_ops.append(op)
 
     sess.run(update_ops)
