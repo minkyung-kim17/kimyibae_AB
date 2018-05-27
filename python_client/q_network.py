@@ -1,11 +1,11 @@
-import os 
+import os
 import tensorflow as tf
 
 import pdb
 
 class DQN_Estimator():
     def __init__(self, scope="estimator", output_size=None, summaries_dir=None):
-        
+
         self.input_size = 4096
         self.hidden_size = [1024, 512]
         self.output_size = output_size
@@ -37,8 +37,8 @@ class DQN_Estimator():
         self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name='Y') # 각 state에서 얻을 수 있는 target reward 값
         # Integer id of which action was selected
         self.actions = tf.placeholder(shape=[None], dtype=tf.int32, name="actions")
-        
-        batch_size = tf.shape(self.X)[0] 
+
+        batch_size = tf.shape(self.X)[0]
 
         # Neural network with 2 hidden layer
         W1 = tf.Variable(tf.random_normal([self.input_size, self.hidden_size[0]], stddev=0.01))
@@ -51,19 +51,20 @@ class DQN_Estimator():
 
         W3 = tf.Variable(tf.random_normal([self.hidden_size[1], self.output_size], stddev=0.01))
         b3 = tf.Variable(tf.random_normal([self.output_size], stddev=0.01))
-        self.predictions = tf.matmul(L2, W3)+b3 # relu 거치지 않고, softmax를 함
+        self.actions_q = tf.matmul(L2, W3)+b3 # relu 거치지 않고, softmax를 함
+        self.predictions = tf.nn.softmax(self.actions_q)
         # self.predictions = tf.contrib.layers.fully_connected(fc1, len(VALID_ACTIONS)) # weight인지, final output인지
-        # 수정: 여기가 최종 아웃풋이 되면 되는건지 확인.... 
-        # 여기서 tf.nn.softmax(tf.matmul(L2, W3)+b3)를 하지 않아도 되는지... 
+        # 수정: 여기가 최종 아웃풋이 되면 되는건지 확인....
+        # 여기서 tf.nn.softmax(tf.matmul(L2, W3)+b3)를 하지 않아도 되는지...
 
         # Get the predictions for the chosen actions only
         # gather_indices = tf.range(batch_size) * tf.shape(self.predictions)[1] + self.actions # ?? 찍어보면 좋을듯
-        # self.action_predictions = tf.gather(tf.reshape(self.predictions, [-1]), gather_indices) # ?? 
+        # self.action_predictions = tf.gather(tf.reshape(self.predictions, [-1]), gather_indices) # ??
 
         self.action_one_hot = tf.one_hot(self.actions, self.output_size, 1.0, 0.0, name='action_one_hot')
         predictions_of_chosen_action =  tf.reduce_sum(self.predictions*self.action_one_hot, reduction_indices = 1)
 
-        # self.delta = self.Y - self.predictions[self.actions] # 이런식으로 indexing이 안되는거 같음..... 
+        # self.delta = self.Y - self.predictions[self.actions] # 이런식으로 indexing이 안되는거 같음.....
         self.delta = self.Y - predictions_of_chosen_action
         self.clipped_delta = tf.clip_by_value(self.delta, self.min_delta, self.max_delta, name="clipped_delta")
 
@@ -98,7 +99,7 @@ class DQN_Estimator():
           s: State input of shape [batch_size, 4, 160, 160, 3]
 
         Returns:
-          Tensor of shape [batch_size, NUM_VALID_ACTIONS] containing the estimated 
+          Tensor of shape [batch_size, NUM_VALID_ACTIONS] containing the estimated
           action values.
         """
         # pdb.set_trace()
