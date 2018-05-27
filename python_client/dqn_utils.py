@@ -1,11 +1,11 @@
 import time
 import numpy as np
+import random
 
 import tensorflow as tf
 from tensorflow.python.keras.applications.vgg16 import preprocess_input, decode_predictions
 from tensorflow.python.keras.preprocessing import image
 from tensorflow.python.keras.models import Model
-import numpy as np
 from PIL import Image
 
 import comm
@@ -56,9 +56,9 @@ def get_feature_4096(model, img_path, need_crop = True, need_resize = True):
 
     x = image.img_to_array(im)
     x = np.expand_dims(x, axis=0)
-    x = preprocess_input(x)    
+    x = preprocess_input(x)
 
-    # pdb.set_trace() 
+    # pdb.set_trace()
 
     return model_4096.predict(x).reshape(4096)
 
@@ -170,8 +170,9 @@ def clear_screenshot(path):
     for f in l:
         os.remove(f)
 
-def init_replaymemory(angle_step, exp_path, current_dir, replay_memory, model_name):
+def init_replaymemory(angle_step, exp_path, current_dir, model_name):
     import os, glob, pickle
+    replay_memory = []
     if angle_step>1:
         angles = [i for i in range(5,90) if (i%angle_step==0)]
     else:
@@ -179,17 +180,60 @@ def init_replaymemory(angle_step, exp_path, current_dir, replay_memory, model_na
     dirlist = []
     for angle in angles:
         for filename in glob.iglob("%s/*/*/s_?_%d_*_seg.png"%(exp_path, angle)):
-            dirlist.append(os.path.dirname(os.path.abspath(filename)))
-    for dir in dirlist:
-        action, reward= None, None
-        with open(os.path.join(dir, 'action'), 'rb') as f:
-            action = pickle.load(f)
-        with open(os.path.join(dir, 'reward'), 'rb') as f:
-            reward = pickle.load(f)
-        states = glob.glob("%s/*.png_seg.png"%dir)
-        state = get_feature_4096(model=model_name, img_path=states[0])
-        next_state = get_feature_4096(model=model_name, img_path=states[1])
-        # state = get_feature_4096(model=model_name, img_path=os.path.abspath(glob.glob("%s/s_?.png_seg.png"%dir)[0]))
-        # next_state = get_feature_4096(model=model_name, img_path=os.path.abspath(glob.glob("%s/s_?_*_*.png_seg.png"%dir)[0]))
-        replay_memory.append([state, action, reward, next_state])
+            next_state = os.path.abspath(filename)
+            if "PLAYING" in next_state:
+                game_state = "PLAYING"
+            elif "LOST" in next_state:
+                game_state = "LOST"
+            elif "WON" in next_state:
+                game_state = "WON"
+            else:
+                game_state = None
+                print("game_state error: None")
+            dir = os.path.dirname(next_state)
+            state = glob.glob("%s/s_?.png_seg.png"%dir)
+            action, reward= None, None
+            with open(os.path.join(dir, 'action'), 'rb') as f:
+                action = pickle.load(f)
+            with open(os.path.join(dir, 'reward'), 'rb') as f:
+                reward = pickle.load(f)
+            state = get_feature_4096(model=model_name, img_path=state[0])
+            next_state = get_feature_4096(model=model_name, img_path=next_state)
+            replay_memory.append([state, action, reward, next_state, game_state])
     return replay_memory
+
+def pretrain(replay_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size = 6, discount_factor = 0.99):
+    samples = random.sample(replay_memory, batch_size)
+    states_batch, action_batch, reward_batch, next_states_batch, game_state_batch = map(np.array, zip(*samples))
+    reward_batch = np.clip(reward_batch/10000, 0, 6)
+    # (1,1,4096) (1,2) (1,) (1,)
+
+    done_batch = np.array([1 if (game_state =='LOST' or 'WON') else 0 for game_state in game_state_batch])
+
+    # angle_action_batch = np.array([action_batch[i][0] for i in range(batch_size)])
+    # taptime_action_batch = np.array([action_batch[i][1] for i in range(batch_size)])
+
+    angle_action_batch_idx = np.array([valid_angles.index(action_batch[i][0]) for i in range(batch_size)])
+    taptime_action_batch_idx = np.array([valid_taptimes.index(action_batch[i][1]) for i in range(batch_size)])
+
+    # 학습에 넣을 target reward 계산
+
+    angle_q_values_next = angle_estimator.predict(sess, next_states_batch)
+    best_angle_actions = np.argmax(angle_q_values_next, axis=1)
+    taptime_q_values_next = taptime_estimator.predict(sess, next_states_batch)
+    best_taptime_actions = np.argmax(taptime_q_values_next, axis=1)
+
+    angle_q_values_next_target = angle_target_estimator.predict(sess, next_states_batch)
+    taptime_q_values_next_target = taptime_target_estimator.predict(sess, next_states_batch)
+
+    angle_targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * \
+        discount_factor * angle_q_values_next_target[np.arange(batch_size), best_angle_actions]
+
+    taptime_targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * \
+        discount_factor * taptime_q_values_next_target[np.arange(batch_size), best_taptime_actions]
+
+    # Perform gradient descent update
+    states_batch = np.array(states_batch)
+    angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch_idx, angle_targets_batch)
+    taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
+    return angle_loss, taptime_loss
