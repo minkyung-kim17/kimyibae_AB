@@ -232,7 +232,10 @@ with tf.Session() as sess:
 				shot_dir = os.path.join(episode_dir, "level%d_shot%d_%s"%(current_level, t, time.strftime('%Y%m%d_%H%M%S')))
 				if not os.path.exists(shot_dir):
 					os.mkdir(shot_dir)
-
+				while True:
+					is_zoomed_out = comm.comm_fully_zoomout(s)
+					if is_zoomed_out==1:
+						break
 				screenshot_path = shot_dir+"/s_%d.png"%t
 				state_raw_img = comm.comm_do_screenshot(s, screenshot_path)
 				save_path = screenshot_path+"_seg.png"
@@ -273,8 +276,7 @@ with tf.Session() as sess:
 
 				# make shot for shooting
 				slingshot_rect = None
-				while(slingshot_rect == None):
-
+				while(slingshot_rect == None or slingshot_rect[0]==-1 or slingshot_rect[1]==-1):
 					slingshot_rect = wrapper.get_slingshot(screenshot_path = screenshot_path)
 				ref_point = dqn_utils.get_slingshot_refpoint(slingshot = slingshot_rect)
 				max_mag = slingshot_rect[3]
