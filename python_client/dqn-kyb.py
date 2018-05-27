@@ -52,7 +52,7 @@ run_start_dir = os.path.join(EXP_PATH, "startAt_%s"%time.strftime("%Y%m%d_%H%M")
 print('Gazua Angry Bird!') #########################################################
 ####################################################################################
 
-update_target_estimator_every = 50
+update_target_estimator_every = 10
 
 #################################
 ##### Initialize game environment
@@ -89,12 +89,12 @@ taptime_target_estimator = q_network.DQN_Estimator(scope="taptime_target_estimat
 
 # Keeps track of useful statistics
 EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
-num_episodes = 500000 # 임시로 저장
-stats = EpisodeStats( # level별 episode_length랑, episode_reward를 저장해 둘 수 있는 matrix 
-        episode_lengths=np.zeros((21, num_episodes)), 
-        episode_rewards=np.zeros((21, num_episodes)))
+stats = EpisodeStats( # level별 episode_length랑, episode_reward를 저장해 둘 수 있는 list
+        episode_lengths=[[] for i in range(21)], 
+        episode_rewards=[[] for i in range(21)])
 ########################
 
+# pdb.set_trace()
 
 with tf.Session() as sess:
 	sess.run(tf.global_variables_initializer())
@@ -144,8 +144,13 @@ with tf.Session() as sess:
 	print('Start Learning!') ### 게임을 하면서, 학습을 하면서, policy를 업데이트 ##########
 	####################################################################################
 
-	i_episode=0
-	loss = None # 왠지 단순히 print하려고 하는것 같음
+	i_episode = 0 # 전체 episode수
+	i_episodes = [0]*21 # 각 레벨별 episode수
+
+	# loss = None # 왠지 단순히 print하려고 하는것 같음
+	dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
+	dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
+
 	while True:
 
 		game_state = comm.comm_get_state(s, silent=False)
@@ -205,11 +210,17 @@ with tf.Session() as sess:
 			saver.save(sess, checkpoint_path)
 			current_level = comm.comm_get_current_level(s)
 
+			i_episodes[current_level-1] += 1
+
 			print("=============== Level",current_level,"===============")
 
 			for t in itertools.count(): # 이 에피소드가 끝날때까지
 
 				# pdb.set_trace()
+				print('\n')
+				print("\rStep {} ({}) @ Episode {} (Level {})".format(
+				        t, total_t, i_episode, current_level), end="\n")
+				sys.stdout.flush()
 
 				shot_dir = os.path.join(episode_dir, "level%d_shot%d_%s"%(current_level, t, time.strftime('%Y%m%d_%H%M%S')))
 				if not os.path.exists(shot_dir):
@@ -235,16 +246,12 @@ with tf.Session() as sess:
 
 				# Update the target estimator
 				if total_t % update_target_estimator_every == 0:
-					pass # 수정: 여기 다시 만들어야 함 오류 팡팡팡
-					# dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
-					# dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
+					# pass # 수정: 여기 다시 만들어야 함 오류 팡팡팡
+					dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
+					dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
 					# print("\nCopied model parameters to target network.")
 
 				# pdb.set_trace()
-				# Print out which step we're on, useful for debugging.
-				print("\rStep {} ({}) @ Episode {}, loss: {} ||".format(
-				        t, total_t, i_episode, loss), end="")
-				sys.stdout.flush()
 
 				# Take a step (현재 policy로 다음 action을 정하네)
 				angle_action_probs = policy_angle(sess, state, epsilon)
@@ -262,15 +269,17 @@ with tf.Session() as sess:
 				dx = -max_mag * math.cos(math.radians(angle_action))
 				dy = max_mag * math.sin(math.radians(angle_action))
 				action = [angle_action, taptime_action]
+				print("Choose action: angle: {}, taptime: {}".format(angle_action, taptime_action), end="\n")
 
 				# shoot
-				print(" angle_action: ", angle_action, "taptime_action: ", taptime_action)
 				start_score = wrapper.get_score_in_game(screenshot_path)
 				shoot_complete = comm.comm_c_shoot_fast(s,ref_point[0], ref_point[1], dx, dy, 0, taptime_action)
 
 				# pdb.set_trace() ##
 
 				reward, new_score, next_screenshot_path, game_state = dqn_utils.get_score_after_shot(current_dir, wrapper, s, start_score)
+
+				print("Get reward from choosen action: reward: {}".format(reward), end="\n")
 
 				screenshot_path = shot_dir+"/s_%d.png"%(t+1)
 				shutil.copy(next_screenshot_path, screenshot_path)
@@ -290,8 +299,15 @@ with tf.Session() as sess:
 				replay_memory.append(Transition(state, action, reward, next_state, game_state))
 
 				# Update statistics
-				stats.episode_rewards[current_level][i_episode] += reward # i_episode번째의 episode의 총 reward를 얻기 위해 계속 누적
-				stats.episode_lengths[current_level][i_episode] = t # i_episode번째의 길이를 얻기 위해 t 값으로 계속 저장
+				if t == 0:
+					stats.episode_rewards[current_level-1].append(reward)
+					stats.episode_lengths[current_level-1].append(t+1)
+				else:
+					stats.episode_rewards[current_level-1][-1] += (reward)
+					stats.episode_lengths[current_level-1][-1] = (t+1)
+
+					# [i_episodes[current_level-1]] += reward # i_episode번째의 episode의 총 reward를 얻기 위해 계속 누적
+					# stats.episode_lengths[current_level][i_episode] = t # i_episode번째의 길이를 얻기 위해 t 값으로 계속 저장
 
 				# minibatch로 q network weight update
 				batch_size = 6
@@ -331,7 +347,7 @@ with tf.Session() as sess:
 					angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch_idx, angle_targets_batch)
 					taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
 
-					print('Learning done (loss: ', angle_loss, taptime_loss, ')')
+					print('Learning done! (angle_loss:', angle_loss, 'taptime_loss:', taptime_loss, ')')
 
 				# state 판별:
 				# if game_state가 playing이 아니면 :
@@ -346,27 +362,25 @@ with tf.Session() as sess:
 			 # Add summaries to tensorboard
 			episode_summary = tf.Summary()
 			# 아래에서 node_name을 여러개 만들어서, 조건문?으로 각 level별 stat을 찍으면 될것 같음!
-			episode_summary.value.add(simple_value=stats.episode_rewards[current_level][i_episode], node_name="episode_reward", tag="episode_reward") 
-			episode_summary.value.add(simple_value=stats.episode_lengths[current_level][i_episode], node_name="episode_length", tag="episode_length")
+			# pdb.set_trace()
+			# for i in range(21):
+				# episode_summary.value.add(simple_value=stats.episode_rewards[i][-1], node_name="episode_reward_Level_%d"%(i+1), tag="episode_reward_Level_%d"%(i+1)) 
+				# episode_summary.value.add(simple_value=stats.episode_lengths[i][-1], node_name="episode_length_Level_%d"%(i+1), tag="episode_length_Level_%d"%(i+1))
+
+			episode_summary.value.add(simple_value=stats.episode_rewards[current_level-1][-1], node_name="episode_reward_Level_%d"%(current_level), tag="episode_reward_Level_%d"%(current_level)) 
+			episode_summary.value.add(simple_value=stats.episode_lengths[current_level-1][-1], node_name="episode_length_Level_%d"%(current_level), tag="episode_length_Level_%d"%(current_level))
+
 			angle_estimator.summary_writer.add_summary(episode_summary, total_t)
 			angle_estimator.summary_writer.flush()
 			taptime_estimator.summary_writer.add_summary(episode_summary, total_t)
 			taptime_estimator.summary_writer.flush()
 
-			pdb.set_trace()
-
-			plotting.EpisodeStats(
-            episode_lengths=stats.episode_lengths[:][:i_episode+1],
-            episode_rewards=stats.episode_rewards[:][:i_episode+1])
+			# pdb.set_trace()
 
 		print()
 
-	''' 
-	tensorboard 실행 방법: cmd 명령으로 실행 
-	tensorboard --logdir="C:\Users\mkkim\AI Birds\kimyibae_client\tensorboard"
-	그 이후 나온 url 실행 (ex. http://DESKTOP-5KPGCLS:6006)
-	'''
-
-	## test()하는 모듈
+	# tensorboard 실행 방법: cmd 명령으로 실행 (tensorflow가 있는 환경에서)
+	# tensorboard --logdir="C:\Users\mkkim\Github\kimyibae_AB\python_client\tensorboard\summaries_angle_estimator"
+	# 그 이후 나온 url 실행 (ex. http://DESKTOP-5KPGCLS:6006)
 
 	print("session 종료")

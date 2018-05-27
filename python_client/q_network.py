@@ -41,16 +41,16 @@ class DQN_Estimator():
         batch_size = tf.shape(self.X)[0]
 
         # Neural network with 2 hidden layer
-        W1 = tf.Variable(tf.random_normal([self.input_size, self.hidden_size[0]], stddev=0.01))
-        b1 = tf.Variable(tf.random_normal([self.hidden_size[0]], stddev=0.01))
+        W1 = tf.Variable(tf.random_normal([self.input_size, self.hidden_size[0]], stddev=0.01), name="W1")
+        b1 = tf.Variable(tf.random_normal([self.hidden_size[0]], stddev=0.01), name="b1")
         L1 = tf.nn.relu(tf.matmul(self.X, W1)+b1)
 
-        W2 = tf.Variable(tf.random_normal([self.hidden_size[0], self.hidden_size[1]], stddev=0.01))
-        b2 = tf.Variable(tf.random_normal([self.hidden_size[1]], stddev=0.01))
+        W2 = tf.Variable(tf.random_normal([self.hidden_size[0], self.hidden_size[1]], stddev=0.01), name="W2")
+        b2 = tf.Variable(tf.random_normal([self.hidden_size[1]], stddev=0.01), name="b2")
         L2 = tf.nn.relu(tf.matmul(L1, W2)+b2)
 
-        W3 = tf.Variable(tf.random_normal([self.hidden_size[1], self.output_size], stddev=0.01))
-        b3 = tf.Variable(tf.random_normal([self.output_size], stddev=0.01))
+        W3 = tf.Variable(tf.random_normal([self.hidden_size[1], self.output_size], stddev=0.01), name="W3")
+        b3 = tf.Variable(tf.random_normal([self.output_size], stddev=0.01), name="b3")
         self.actions_q = tf.matmul(L2, W3)+b3 # relu 거치지 않고, softmax를 함
         self.predictions = tf.nn.softmax(self.actions_q)
         # self.predictions = tf.contrib.layers.fully_connected(fc1, len(VALID_ACTIONS)) # weight인지, final output인지
@@ -86,7 +86,6 @@ class DQN_Estimator():
         # Summaries for Tensorboard
         self.summaries = tf.summary.merge([
             tf.summary.scalar("loss", self.loss),
-            # tf.summary.histogram("loss_hist", self.losses),
             tf.summary.histogram("q_values_hist", self.predictions),
             tf.summary.scalar("max_q_value", tf.reduce_max(self.predictions))
         ])
