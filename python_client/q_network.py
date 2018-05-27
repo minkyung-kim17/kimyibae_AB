@@ -19,7 +19,7 @@ class DQN_Estimator():
         with tf.variable_scope(scope):
             # Build the graph
             self._build_Qnetwork()
-            if summaries_dir: # 일단 이부분은 제낌
+            if summaries_dir: 
                 summary_dir = os.path.join(summaries_dir, "summaries_{}".format(scope))
                 if not os.path.exists(summary_dir):
                     os.makedirs(summary_dir)
@@ -78,7 +78,8 @@ class DQN_Estimator():
         # self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
         # self.train_op = self.optimizer.minimize(self.loss, global_step=tf.train.get_global_step())
         self.optimizer = tf.train.AdamOptimizer( 1e-4 )
-        self.train_op = self.optimizer.minimize(self.loss)
+        # self.train_op = self.optimizer.minimize(self.loss)
+        self.train_op = self.optimizer.minimize(self.loss, global_step=tf.train.get_global_step())
         # self.train_op = self.optimizer.minimize(self.loss, var_list=list(self.q_w.values()), global_step=self.global_step)
         # self.optimizer = tf.train.AdamOptimizer(0.001).minimize(loss)
 
@@ -120,12 +121,12 @@ class DQN_Estimator():
         """
         # pdb.set_trace()
         feed_dict = { self.X: s, self.actions: a, self.Y: y}
-        # summaries, global_step, _, loss = sess.run(
-        #     [self.summaries, tf.train.get_global_step(), self.train_op, self.loss],
-        #     feed_dict)
-        summaries, _, loss = sess.run(
-            [self.summaries, self.train_op, self.loss],
+        summaries, global_step, _, loss = sess.run(
+            [self.summaries, tf.train.get_global_step(), self.train_op, self.loss],
             feed_dict)
+        # summaries, _, loss = sess.run(
+            # [self.summaries, self.train_op, self.loss],
+            # feed_dict)
         if self.summary_writer:
             self.summary_writer.add_summary(summaries, global_step)
         return loss

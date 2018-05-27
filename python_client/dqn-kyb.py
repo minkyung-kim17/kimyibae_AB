@@ -1,4 +1,4 @@
-import os, inspect, logging, glob, time, math, itertools, sys, shutil, plotting, pickle, random
+import os, inspect, logging, glob, time, math, itertools, sys, shutil, pickle, random
 from collections import deque, namedtuple
 import socket
 from PIL import Image
@@ -27,17 +27,20 @@ current_path = inspect.getfile(inspect.currentframe())
 current_dir = os.path.dirname(os.path.abspath(current_path))
 EXP_PATH=os.path.join(current_dir,"experiences")
 SCR_PATH=os.path.join(current_dir,"screenshots")
+SUMM_PATH=os.path.join(current_dir, "tensorboard") # tf.summary dir
 
 if not os.path.exists(EXP_PATH):
-			os.mkdir(EXP_PATH)
-# if not os.path.exists(SCR_PATH):
-			# os.mkdir(SCR_PATH)
+	os.mkdir(EXP_PATH)
+if not os.path.exists(SCR_PATH):
+	os.mkdir(SCR_PATH)
+if not os.path.exists(SUMM_PATH):
+	os.mkdir(SUMM_PATH)
 
 checkpoint_dir = os.path.join(current_dir, "checkpoints")
 checkpoint_path = os.path.join(checkpoint_dir, "model") # checkpoint file path
 
 if not os.path.exists(checkpoint_dir):
-		os.makedirs(checkpoint_dir)
+	os.makedirs(checkpoint_dir)
 
 # episode_prefix	= '%s/startAt_%s'%(EXP_PATH, time.strftime("%Y%m%d_%H%M"))
 run_start_dir = os.path.join(EXP_PATH, "startAt_%s"%time.strftime("%Y%m%d_%H%M"))
@@ -74,36 +77,39 @@ vgg16 = VGG16(weights= 'imagenet')
 valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
 valid_taptimes = list(range(500, 2501, 100))  # 500부터 2500까지 100씩 증가
 
-angle_estimator = q_network.DQN_Estimator(scope="angle_estimator", output_size=len(valid_angles), summaries_dir=None)
+# Create a global step variable
+global_step = tf.Variable(0, name='global_step', trainable=False)
+
+angle_estimator = q_network.DQN_Estimator(scope="angle_estimator", output_size=len(valid_angles), summaries_dir=SUMM_PATH)
 angle_target_estimator = q_network.DQN_Estimator(scope="angle_target_estimator", output_size=len(valid_angles))
-taptime_estimator = q_network.DQN_Estimator(scope="taptime_estimator", output_size=len(valid_taptimes), summaries_dir=None)
+taptime_estimator = q_network.DQN_Estimator(scope="taptime_estimator", output_size=len(valid_taptimes), summaries_dir=SUMM_PATH)
 taptime_target_estimator = q_network.DQN_Estimator(scope="taptime_target_estimator", output_size=len(valid_taptimes))
 # angle_estimator, angle_target_estimator = DQN_Estimator(obs_size, sess, fe, sc_parser, "angle", valid_angles) # 수정 필요
 # taptime_estimator, taptime_target_estimator = DQN_Estimator(obs_size, sess, fe, sc_parser, "taptime", valid_taptimes) # 수정 필요
 
-# level별 episode_length랑, episode_reward를 저장해 둘 수 있는 matrix??... plotting.py (MIT코드에서 가져옴)를 이용할 수 있음
-# stats = plotting.EpisodeStats(
-#         episode_lengths=np.zeros(num_episodes),
-#         episode_rewards=np.zeros(num_episodes))
+# Keeps track of useful statistics
+EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
+num_episodes = 500000 # 임시로 저장
+stats = EpisodeStats( # level별 episode_length랑, episode_reward를 저장해 둘 수 있는 matrix 
+        episode_lengths=np.zeros((21, num_episodes)), 
+        episode_rewards=np.zeros((21, num_episodes)))
 ########################
 
-# sess.run(tf.global_variables_initializer())
-init = tf.global_variables_initializer()
+
 with tf.Session() as sess:
-	sess.run(init)
+	sess.run(tf.global_variables_initializer())
 
-	# saver = tf.train.Saver()
+	# pdb.set_trace()
+	saver = tf.train.Saver()
 
-	latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir)
+	latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir) # path를 반환
 	if latest_checkpoint:
 		print("Loading model checkpoint {}...\n".format(latest_checkpoint))
-		# saver.restore(sess, latest_checkpoint)
+		saver.restore(sess, latest_checkpoint)
 
-	try:
-		total_t = sess.run(tf.train.get_global_step())
-	except:
-		total_t = 0
+	total_t = sess.run(tf.train.get_global_step()) # 처음에 안됐었던 이유는, global_step이란 tensor 변수를 안만들어서임
 
+	## 
 	epsilon_start = 1.0
 	epsilon_end = 0.1
 	epsilon_decay_steps = 500000
@@ -139,7 +145,7 @@ with tf.Session() as sess:
 	####################################################################################
 
 	i_episode=0
-	loss = None # 수정: 여기서 하는게 맞나... Level_selection안에 넣어놨었는데, 여기를 들어가지 않고 실행되는 경우도 있었음
+	loss = None # 왠지 단순히 print하려고 하는것 같음
 	while True:
 
 		game_state = comm.comm_get_state(s, silent=False)
@@ -195,13 +201,15 @@ with tf.Session() as sess:
 			if not os.path.exists(episode_dir):
 				os.mkdir(episode_dir)
 
-			# saver.save(tf.get_default_session(), checkpoint_path) # tf.get_default_session()이 none이 됨...
-			# saver.save(sess, checkpoint_path)
+			# 새 에피소드 시작할 때마다 checkpoint 새로 생성
+			saver.save(sess, checkpoint_path)
 			current_level = comm.comm_get_current_level(s)
 
 			print("=============== Level",current_level,"===============")
 
 			for t in itertools.count(): # 이 에피소드가 끝날때까지
+
+				# pdb.set_trace()
 
 				shot_dir = os.path.join(episode_dir, "level%d_shot%d_%s"%(current_level, t, time.strftime('%Y%m%d_%H%M%S')))
 				if not os.path.exists(shot_dir):
@@ -220,11 +228,12 @@ with tf.Session() as sess:
 				epsilon = epsilons[min(total_t, epsilon_decay_steps-1)]
 
 				# Add epsilon to Tensorboard
-				# episode_summary = tf.Summary()
-				# episode_summary.value.add(simple_value=epsilon, tag="epsilon")
-				# q_estimator.summary_writer.add_summary(episode_summary, total_t)
+				episode_summary = tf.Summary() # 수정: 
+				episode_summary.value.add(simple_value=epsilon, tag="epsilon")
+				angle_estimator.summary_writer.add_summary(episode_summary, total_t)
+				taptime_estimator.summary_writer.add_summary(episode_summary, total_t)	
 
-				# Maybe update the target estimator
+				# Update the target estimator
 				if total_t % update_target_estimator_every == 0:
 					pass # 수정: 여기 다시 만들어야 함 오류 팡팡팡
 					# dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
@@ -233,7 +242,7 @@ with tf.Session() as sess:
 
 				# pdb.set_trace()
 				# Print out which step we're on, useful for debugging.
-				print("\rStep {} ({}) @ Episode {}, loss: {} ".format(
+				print("\rStep {} ({}) @ Episode {}, loss: {} ||".format(
 				        t, total_t, i_episode, loss), end="")
 				sys.stdout.flush()
 
@@ -246,7 +255,7 @@ with tf.Session() as sess:
 
 				# make shot for shooting
 				slingshot_rect = wrapper.get_slingshot(screenshot_path = screenshot_path)
-				ref_point = dqn_utils.get_slingshot_refpoint(slingshot = slingshot_rect, silent = False)
+				ref_point = dqn_utils.get_slingshot_refpoint(slingshot = slingshot_rect)
 				max_mag = slingshot_rect[3]
 				angle_action = valid_angles[angle_action_idx]
 				taptime_action = valid_taptimes[taptime_action_idx]
@@ -255,7 +264,7 @@ with tf.Session() as sess:
 				action = [angle_action, taptime_action]
 
 				# shoot
-				print("angle_action, taptime_action ", angle_action, taptime_action)
+				print(" angle_action: ", angle_action, "taptime_action: ", taptime_action)
 				start_score = wrapper.get_score_in_game(screenshot_path)
 				shoot_complete = comm.comm_c_shoot_fast(s,ref_point[0], ref_point[1], dx, dy, 0, taptime_action)
 
@@ -281,8 +290,8 @@ with tf.Session() as sess:
 				replay_memory.append(Transition(state, action, reward, next_state, game_state))
 
 				# Update statistics
-				# stats.episode_rewards[i_episode] += reward # i_episode번째의 episode의 총 reward를 얻기 위해 계속 누적
-				# stats.episode_lengths[i_episode] = t # i_episode번째의 길이를 얻기 위해 t 값으로 계속 저장
+				stats.episode_rewards[current_level][i_episode] += reward # i_episode번째의 episode의 총 reward를 얻기 위해 계속 누적
+				stats.episode_lengths[current_level][i_episode] = t # i_episode번째의 길이를 얻기 위해 t 값으로 계속 저장
 
 				# minibatch로 q network weight update
 				batch_size = 6
@@ -319,9 +328,6 @@ with tf.Session() as sess:
 
 					# Perform gradient descent update
 					states_batch = np.array(states_batch)
-					# angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch, angle_targets_batch)
-					# taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch, taptime_targets_batch)
-
 					angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch_idx, angle_targets_batch)
 					taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
 
@@ -337,34 +343,30 @@ with tf.Session() as sess:
 
 			print('\nOne episode is done')
 
-		# monitoring-tensorflow board?
-		# level별로, reward per episode 기록?
+			 # Add summaries to tensorboard
+			episode_summary = tf.Summary()
+			# 아래에서 node_name을 여러개 만들어서, 조건문?으로 각 level별 stat을 찍으면 될것 같음!
+			episode_summary.value.add(simple_value=stats.episode_rewards[current_level][i_episode], node_name="episode_reward", tag="episode_reward") 
+			episode_summary.value.add(simple_value=stats.episode_lengths[current_level][i_episode], node_name="episode_length", tag="episode_length")
+			angle_estimator.summary_writer.add_summary(episode_summary, total_t)
+			angle_estimator.summary_writer.flush()
+			taptime_estimator.summary_writer.add_summary(episode_summary, total_t)
+			taptime_estimator.summary_writer.flush()
+
+			pdb.set_trace()
+
+			plotting.EpisodeStats(
+            episode_lengths=stats.episode_lengths[:][:i_episode+1],
+            episode_rewards=stats.episode_rewards[:][:i_episode+1])
+
 		print()
+
+	''' 
+	tensorboard 실행 방법: cmd 명령으로 실행 
+	tensorboard --logdir="C:\Users\mkkim\AI Birds\kimyibae_client\tensorboard"
+	그 이후 나온 url 실행 (ex. http://DESKTOP-5KPGCLS:6006)
+	'''
 
 	## test()하는 모듈
 
-	# init = tf.global_variables_initializer()
-	# sess = tf.Session()
-	# sess.run(init)
-
-	# batch_size = 100
-
-	# for epoch in range(15):
-	#     total_cost = 0
-
-	#     for i in range(total_batch):
-
-	#         # replay memory에서 batch_size만큼 data를 가져옴
-
-	#         _, cost_val = sess.run([optimizer, cost], feed_dict={X: state, Y: target_reward})
-	#         total_cost += cost_val
-
-	#     print('Epoch:', '%04d' % (epoch + 1),
-	#           'Avg. cost =', '{:.3f}'.format(total_cost / total_batch))
-
-	# is_correct = tf.equal(tf.argmax(model, 1), tf.argmax(Y, 1))
-	# accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
-	# print('정확도:', sess.run(accuracy,
-	#                         feed_dict={X: mnist.test.images,
-	#                                    Y: mnist.test.labels}))
 	print("session 종료")

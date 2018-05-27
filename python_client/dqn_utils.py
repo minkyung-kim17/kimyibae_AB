@@ -56,9 +56,9 @@ def get_feature_4096(model, img_path, need_crop = True, need_resize = True):
 
     x = image.img_to_array(im)
     x = np.expand_dims(x, axis=0)
-    x = preprocess_input(x)
+    x = preprocess_input(x)    
 
-    # pdb.set_trace()
+    # pdb.set_trace() 
 
     return model_4096.predict(x).reshape(4096)
 
