@@ -319,7 +319,7 @@ while True:
 
 			# make shot for shooting
 			slingshot_rect = wrapper.get_slingshot(screenshot_path = screenshot_path)
-			ref_point = wrapper.get_slingshot_refpoint(slingshot = slingshot_rect, silent = False)
+			ref_point = dqn_utils.get_slingshot_refpoint(slingshot = slingshot_rect)
 			max_mag = slingshot_rect[3]
 			# angle_action = valid_angles[angle_action_idx]
 			# taptime_action = valid_taptimes[taptime_action_idx]

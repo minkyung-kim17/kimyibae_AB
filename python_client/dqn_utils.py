@@ -84,6 +84,13 @@ def copy_model_parameters(sess, estimator1, estimator2):
 
     sess.run(update_ops)
 
+def get_slingshot_refpoint(slingshot):
+	X_OFFSET = 0.5
+	Y_OFFSET = 0.65
+	x = slingshot[0]+slingshot[2]*X_OFFSET
+	y = slingshot[1]+slingshot[2]*Y_OFFSET
+	return (x,y)
+
 def get_score_after_shot(current_dir, parser, comm_socket, start_score):
     """
     Get score after shot.
@@ -104,7 +111,6 @@ def get_score_after_shot(current_dir, parser, comm_socket, start_score):
     screenshot = None
     last_score = start_score
     sleepcount = 0
-    is_terminal = False
     # Shooting is done. Check the score
     while True:
         # check the status of the screenshot

@@ -8,7 +8,7 @@ from tensorflow.python.keras.applications.vgg16 import VGG16
 
 # sys.path.append('../')
 # from comm import *
-import comm 
+import comm
 import wrapper_python as wrap
 import q_network
 import dqn_utils
@@ -24,14 +24,14 @@ dqn_logger.addHandler(logging.FileHandler("dqn_logger.log"))
 
 # path 설정 ...
 current_path = inspect.getfile(inspect.currentframe())
-current_dir = os.path.dirname(os.path.abspath(current_path)) 
+current_dir = os.path.dirname(os.path.abspath(current_path))
 EXP_PATH=os.path.join(current_dir,"experiences")
 SCR_PATH=os.path.join(current_dir,"screenshots")
 
 if not os.path.exists(EXP_PATH):
-			os.mkdir(EXP_PATH) 
+			os.mkdir(EXP_PATH)
 # if not os.path.exists(SCR_PATH):
-			# os.mkdir(SCR_PATH) 
+			# os.mkdir(SCR_PATH)
 
 checkpoint_dir = os.path.join(current_dir, "checkpoints")
 checkpoint_path = os.path.join(checkpoint_dir, "model") # checkpoint file path
@@ -44,63 +44,6 @@ run_start_dir = os.path.join(EXP_PATH, "startAt_%s"%time.strftime("%Y%m%d_%H%M")
 
 # while True:
 # 	pass
-
-def get_state(screenshots_list, state_name, playing_state):
-	
-	#######################################################################
-	# Stack two images : After shooting image, waiting for shooting image.
-	# params :
-	# 	screenshots_list : two images to be stacked
-	# 	state_name : image name to be saved
-	# 	playing_state : 'FIRST_SHOT', 'FINAL_SHOT', 'AMONG_SHOTS'
-	# return :
-	# 	No return, save state_name.png
-	#######################################################################
-	
-	cropped = []
-	length = len(screenshots_list)
-	if (length == 1):
-		if playing_state == 'FIRST_SHOT':
-			dqn_logger.debug("First shot... Stack images.")
-			try:
-				cropped.append(Image.open(current_dir+"/all_black.png"))
-				cropped.append(Image.open(screenshots_list[0]).crop((70,45,760,390)))
-			except Exception as e:
-				dqn_logger.error("Error occurs at stacking two images.")
-				dqn_logger.error(str(e))
-		elif playing_state == 'FINAL_SHOT':
-			dqn_logger.debug("Final shot... Stack images.")
-			try:
-				cropped.append(Image.open(screenshots_list[0]).crop((70,45,760,390)))
-				cropped.append(Image.open(current_dir+"/all_black.png"))
-			except Exception as e:
-				dqn_logger.error("Error occurs at stacking two images.")
-				dqn_logger.error(str(e))
-		else:
-			print("playing_state error, current state is ", playing_state)
-	elif (length == 2):
-		if playing_state == 'AMONG_SHOTS':
-			dqn_logger.debug("Keep shooting... Stack images.")
-			try:
-				for screenshot in screenshots_list:
-					cropped.append(Image.open(screenshot).crop((70,45,760,390)))
-			except Exception as e:
-				dqn_logger.error("Error occurs at stacking two images.")
-				dqn_logger.error(str(e))
-		else:
-			dqn_logger.error("playing_state error, current state is ", playing_state)
-	else:
-		dqn_logger.error("More than two images in the list.")
-
-	stacked = np.vstack([np.asarray(crop) for crop in cropped])
-	stacked = Image.fromarray(stacked).resize((224,224))
-	try:
-		if not os.path.exists(EXP_PATH+'/'+state_name):
-			os.mkdir(EXP_PATH+'/'+state_name) #screenshot 아래에 state_name으로 생김
-		stacked.save(EXP_PATH+"/"+state_name+"/"+state_name+".png")
-	except Exception as e:
-		dqn_logger.error("Error occurs at saving stacked image.")
-		dqn_logger.error(str(e))
 
 ####################################################################################
 print('Gazua Angry Bird!') #########################################################
@@ -118,25 +61,25 @@ s.connect(('localhost',2004))
 _,_,_ = comm.comm_configure(s, 1003)
 
 # connect to Java
-wrapper = wrap.WrapperPython('127.0.0.1') 
+wrapper = wrap.WrapperPython('127.0.0.1')
 
 # initialize tensorflow session
-# tf.reset_default_graph() # ?? 
-sess = tf.Session() 
+# tf.reset_default_graph() # ??
+sess = tf.Session()
 
 # initialize feature extraction
 vgg16 = VGG16(weights= 'imagenet')
 
 # set the action sets
 valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
-valid_taptimes = (np.array((range(500, 2501, 100)))/1000).tolist() # 500부터 2500까지 100씩 증가 
+valid_taptimes = list(range(500, 2501, 100))  # 500부터 2500까지 100씩 증가
 
 angle_estimator = q_network.DQN_Estimator(scope="angle_estimator", output_size=len(valid_angles), summaries_dir=None)
 angle_target_estimator = q_network.DQN_Estimator(scope="angle_target_estimator", output_size=len(valid_angles))
 taptime_estimator = q_network.DQN_Estimator(scope="taptime_estimator", output_size=len(valid_taptimes), summaries_dir=None)
-taptime_target_estimator = q_network.DQN_Estimator(scope="taptime_target_estimator", output_size=len(valid_taptimes)) 
+taptime_target_estimator = q_network.DQN_Estimator(scope="taptime_target_estimator", output_size=len(valid_taptimes))
 # angle_estimator, angle_target_estimator = DQN_Estimator(obs_size, sess, fe, sc_parser, "angle", valid_angles) # 수정 필요
-# taptime_estimator, taptime_target_estimator = DQN_Estimator(obs_size, sess, fe, sc_parser, "taptime", valid_taptimes) # 수정 필요 
+# taptime_estimator, taptime_target_estimator = DQN_Estimator(obs_size, sess, fe, sc_parser, "taptime", valid_taptimes) # 수정 필요
 
 # level별 episode_length랑, episode_reward를 저장해 둘 수 있는 matrix??... plotting.py (MIT코드에서 가져옴)를 이용할 수 있음
 # stats = plotting.EpisodeStats(
@@ -153,8 +96,8 @@ if latest_checkpoint:
 	print("Loading model checkpoint {}...\n".format(latest_checkpoint))
 	# saver.restore(sess, latest_checkpoint)
 
-try: 
-	total_t = sess.run(tf.train.get_global_step()) 
+try:
+	total_t = sess.run(tf.train.get_global_step())
 except:
 	total_t = 0
 
@@ -169,7 +112,7 @@ policy_angle = dqn_utils.make_epsilon_greedy_policy(
 
 policy_taptime = dqn_utils.make_epsilon_greedy_policy(
         taptime_estimator,
-        len(valid_taptimes)) 
+        len(valid_taptimes))
 
 ########################################
 ##### Populating replay memory (size: N)
@@ -195,7 +138,7 @@ print('Start Learning!') ### 게임을 하면서, 학습을 하면서, policy를
 i_episode=0
 loss = None # 수정: 여기서 하는게 맞나... Level_selection안에 넣어놨었는데, 여기를 들어가지 않고 실행되는 경우도 있었음
 while True:
-	
+
 	game_state = comm.comm_get_state(s, silent=False)
 	dqn_utils.clear_screenshot(SCR_PATH+"/")
 
@@ -213,7 +156,7 @@ while True:
 		pass
 	elif game_state=='LEVEL_SELECTION':
 		# loss = None
-		
+
 		print ("########################################################")
 		print ("Level selection state")
 
@@ -235,7 +178,7 @@ while True:
 	elif game_state=='LOST':
 		print ("########################################################")
 		print ("Lost state")
-		# restart random level 
+		# restart random level
 		comm.comm_load_level(s, np.random.randint(1,22), silent=False)
 
 
@@ -245,21 +188,17 @@ while True:
 
 		i_episode += 1
 
-		episode_dir = "%s_%d"%(run_start_dir,i_episode) 
+		episode_dir = "%s_%d"%(run_start_dir,i_episode)
 		if not os.path.exists(episode_dir):
 			os.mkdir(episode_dir)
 
 		# saver.save(tf.get_default_session(), checkpoint_path) # tf.get_default_session()이 none이 됨...
 		# saver.save(sess, checkpoint_path)
 		current_level = comm.comm_get_current_level(s)
-		last_score = 0;
 
 		print("=============== Level",current_level,"===============")
 
 		for t in itertools.count(): # 이 에피소드가 끝날때까지
-			
-			if t==0:
-				last_score = 0;
 
 			shot_dir = os.path.join(episode_dir, "level%d_shot%d_%s"%(current_level, t, time.strftime('%Y%m%d_%H%M%S')))
 			if not os.path.exists(shot_dir):
@@ -268,8 +207,8 @@ while True:
 			screenshot_path = shot_dir+"/s_%d.png"%t
 			state_raw_img = comm.comm_do_screenshot(s, screenshot_path)
 			save_path = screenshot_path+"_seg.png"
-			state_img = wrapper.save_seg(screenshot_path, save_path) 
-			state = dqn_utils.get_feature_4096(model=vgg16, img_path=save_path) # 수정: 이 함수 안에서 크기 조절하는게 좋을 듯 
+			state_img = wrapper.save_seg(screenshot_path, save_path)
+			state = dqn_utils.get_feature_4096(model=vgg16, img_path=save_path) # 수정: 이 함수 안에서 크기 조절하는게 좋을 듯
 			# pdb.set_trace()
 
 			print('Choose action from given Q network model')
@@ -288,8 +227,8 @@ while True:
 				# dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
 				# dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
 				# print("\nCopied model parameters to target network.")
-			
-			# pdb.set_trace()   
+
+			# pdb.set_trace()
 			# Print out which step we're on, useful for debugging.
 			print("\rStep {} ({}) @ Episode {}, loss: {} ".format(
 			        t, total_t, i_episode, loss), end="")
@@ -298,36 +237,33 @@ while True:
 			# Take a step (현재 policy로 다음 action을 정하네)
 			angle_action_probs = policy_angle(sess, state, epsilon)
 			taptime_action_probs = policy_taptime(sess, state, epsilon)
-			
+
 			angle_action_idx = np.random.choice(np.arange(len(angle_action_probs)), p=angle_action_probs)
 			taptime_action_idx = np.random.choice(np.arange(len(taptime_action_probs)), p=taptime_action_probs)
 
 			# make shot for shooting
 			slingshot_rect = wrapper.get_slingshot(screenshot_path = screenshot_path)
-			ref_point = wrapper.get_slingshot_refpoint(slingshot = slingshot_rect, silent = False)
+			ref_point = dqn_utils.get_slingshot_refpoint(slingshot = slingshot_rect, silent = False)
 			max_mag = slingshot_rect[3]
 			angle_action = valid_angles[angle_action_idx]
 			taptime_action = valid_taptimes[taptime_action_idx]
-			dx = -max_mag * math.cos(math.radians(angle_action)) 
-			dy = max_mag * math.sin(math.radians(angle_action)) 
+			dx = -max_mag * math.cos(math.radians(angle_action))
+			dy = max_mag * math.sin(math.radians(angle_action))
 			action = [angle_action, taptime_action]
 
 			# shoot
-			print(angle_action, taptime_action)
+			print("angle_action, taptime_action ", angle_action, taptime_action)
 			start_score = wrapper.get_score_in_game(screenshot_path)
-			shoot_complete = comm.comm_c_shoot_fast(s,ref_point[0], ref_point[1], dx, dy, 0, 0)
-			if taptime_action >0:
-				time.sleep(taptime_action)
-				is_clicked = comm.comm_click_in_center(s)
+			shoot_complete = comm.comm_c_shoot_fast(s,ref_point[0], ref_point[1], dx, dy, 0, taptime_action)
 
 			# pdb.set_trace() ##
 
 			reward, new_score, next_screenshot_path, game_state = dqn_utils.get_score_after_shot(current_dir, wrapper, s, start_score)
-			
+
 			screenshot_path = shot_dir+"/s_%d.png"%(t+1)
 			shutil.copy(next_screenshot_path, screenshot_path)
 			save_path = screenshot_path+"_seg.png"
-			state_img = wrapper.save_seg(screenshot_path, save_path) 
+			state_img = wrapper.save_seg(screenshot_path, save_path)
 			with open(os.path.join(shot_dir, 'action'), 'wb') as f:
 				pickle.dump(action, f)
 			with open(os.path.join(shot_dir, 'reward'), 'wb') as f:
@@ -339,7 +275,7 @@ while True:
 			    replay_memory.pop(0)
 
 			# Save transition to replay memory
-			replay_memory.append(Transition(state, action, reward, next_state, game_state))   
+			replay_memory.append(Transition(state, action, reward, next_state, game_state))
 
 			# Update statistics
 			# stats.episode_rewards[i_episode] += reward # i_episode번째의 episode의 총 reward를 얻기 위해 계속 누적
@@ -349,7 +285,7 @@ while True:
 			batch_size = 6
 			discount_factor = 0.99
 
-			if len(replay_memory) > batch_size: 
+			if len(replay_memory) > batch_size:
 				samples = random.sample(replay_memory, batch_size)
 				states_batch, action_batch, reward_batch, next_states_batch, game_state_batch = map(np.array, zip(*samples))
 				# (1,1,4096) (1,2) (1,) (1,)
@@ -377,7 +313,7 @@ while True:
 
 				taptime_targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * \
 		            discount_factor * taptime_q_values_next_target[np.arange(batch_size), best_taptime_actions]
-		            
+
 				# Perform gradient descent update
 				states_batch = np.array(states_batch)
 				# angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch, angle_targets_batch)

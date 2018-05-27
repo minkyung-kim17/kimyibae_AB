@@ -74,36 +74,38 @@ def comm_configure(s, client_id):
 	print ("\t\ttime_limit:", time_limit)
 	print ("\t\tnum_of_levels:", num_of_levels)
 	return round_info, time_limit, num_of_levels
+#
+# def comm_click_in_center(s, silent=True):
+# 	if not silent:
+# 		print ("\t[OPERATION]: cartesian shoot (safe)"),
+# 		print ("\t\tshooting params: (%d, %d, %d, %d, %d, %d)" % (x,y,dx,dy,t1,t2)),
+# 	s.sendall(get_hex_MID(MID_CLICKINCENTER))
+# 	data = s.recv(4)
+# 	hex_str = binascii.hexlify(data)
+# 	ret_status = hex_to_int(hex_str)
+# 	if not silent:
+# 		if ret_status == 1:
+# 			print ("\t\treturn 1. clicking completed")
+# 		else:
+# 			print ("\t\treturn %d. clicking failed")
+# 	return ret_status
 
-def comm_click_in_center(s, silent=True):
-	if not silent:
-		print ("\t[OPERATION]: cartesian shoot (safe)"),
-		print ("\t\tshooting params: (%d, %d, %d, %d, %d, %d)" % (x,y,dx,dy,t1,t2)),
-	s.sendall(get_hex_MID(MID_CLICKINCENTER))
-	data = s.recv(4)
-	hex_str = binascii.hexlify(data)
-	ret_status = hex_to_int(hex_str)
-	if not silent:
-		if ret_status == 1:
-			print ("\t\treturn 1. clicking completed")
-		else:
-			print ("\t\treturn %d. clicking failed")
-	return ret_status
 
-def comm_c_shoot_safe(s, x, y, dx, dy, t1, t2, silent=True):
-	if not silent:
-		print ("\t[OPERATION]: cartesian shoot (safe)"),
-		print ("\t\tshooting params: (%d, %d, %d, %d, %d, %d)" % (x,y,dx,dy,t1,t2)),
-	s.sendall(get_hex_MID(MID_CSHOOT)+struct.pack('!i',x)+struct.pack('!i',y)+struct.pack('!i',dx)+struct.pack('!i',dy)+struct.pack('!i',t1)+struct.pack('!i',t2))
-	data = s.recv(4)
-	hex_str = binascii.hexlify(data)
-	ret_status = hex_to_int(hex_str)
-	if not silent:
-		if ret_status == 1:
-			print ("\t\treturn 1. shooting completed")
-		else:
-			print ("\t\treturn %d. shooting failed")
-	return ret_status
+
+# def comm_c_shoot_safe(s, x, y, dx, dy, t1, t2, silent=True):
+# 	if not silent:
+# 		print ("\t[OPERATION]: cartesian shoot (safe)"),
+# 		print ("\t\tshooting params: (%d, %d, %d, %d, %d, %d)" % (x,y,dx,dy,t1,t2)),
+# 	s.sendall(get_hex_MID(MID_CSHOOT)+struct.pack('!i',x)+struct.pack('!i',y)+struct.pack('!i',dx)+struct.pack('!i',dy)+struct.pack('!i',t1)+struct.pack('!i',t2))
+# 	data = s.recv(4)
+# 	hex_str = binascii.hexlify(data)
+# 	ret_status = hex_to_int(hex_str)
+# 	if not silent:
+# 		if ret_status == 1:
+# 			print ("\t\treturn 1. shooting completed")
+# 		else:
+# 			print ("\t\treturn %d. shooting failed")
+# 	return ret_status
 
 def comm_c_shoot_fast(s, x, y, dx, dy, t1, t2, silent=True): # int 보내는거 이상함
 	# pdb.set_trace()
@@ -122,38 +124,38 @@ def comm_c_shoot_fast(s, x, y, dx, dy, t1, t2, silent=True): # int 보내는거 
 			print ("\t\treturn %d. shooting failed")
 	return ret_status
 
-def comm_p_shoot_safe(s, x, y, r, theta, t1, t2, silent=True):
-	# theta ranges from -9000~9000, the actual degree is divided by 100 (9025 means 90.25)
-	if not silent:
-		print ("\t[OPERATION]: polar shoot (safe)"),
-		print ("\t\tshooting params: (%d, %d, %d, %d, %d, %d)" % (x,y,r,theta,t1,t2)),
-	s.sendall(get_hex_MID(MID_PSHOOT)+struct.pack('!i',x)+struct.pack('!i',y)+struct.pack('!i',r)+struct.pack('!i',theta)+struct.pack('!i',t1)+struct.pack('!i',t2))
-	data = s.recv(4)
-	hex_str = binascii.hexlify(data)
-	ret_status = hex_to_int(hex_str)
-	if not silent:
-		if ret_status == 1:
-			print ("\t\treturn 1. polar shooting completed")
-		else:
-			print ("\t\treturn %d. polar shooting failed")
-	return ret_status
-
-def comm_p_shoot_fast(s, x, y, r, theta, t1, t2, silent=True):
-	# theta ranges from -9000~9000, the actual degree is divided by 100 (9025 means 90.25)
-	# horizontal is 0 degree. Positive angles shoots upward, negative angles shoots downward
-	if not silent:
-		print ("\t[OPERATION]: polar shoot (fast)"),
-		print ("\t\tshooting params: (%d, %d, %d, %d, %d, %d)" % (x,y,r,theta,t1,t2)),
-	s.sendall(get_hex_MID(MID_PFASTSHOOT)+struct.pack('!i',x)+struct.pack('!i',y)+struct.pack('!i',r)+struct.pack('!i',theta)+struct.pack('!i',t1)+struct.pack('!i',t2))
-	data = s.recv(4)
-	hex_str = binascii.hexlify(data)
-	ret_status = hex_to_int(hex_str)
-	if not silent:
-		if ret_status == 1:
-			print ("\t\treturn 1. polar shooting completed")
-		else:
-			print ("\t\treturn %d. polar shooting failed")
-	return ret_status
+# def comm_p_shoot_safe(s, x, y, r, theta, t1, t2, silent=True):
+# 	# theta ranges from -9000~9000, the actual degree is divided by 100 (9025 means 90.25)
+# 	if not silent:
+# 		print ("\t[OPERATION]: polar shoot (safe)"),
+# 		print ("\t\tshooting params: (%d, %d, %d, %d, %d, %d)" % (x,y,r,theta,t1,t2)),
+# 	s.sendall(get_hex_MID(MID_PSHOOT)+struct.pack('!i',x)+struct.pack('!i',y)+struct.pack('!i',r)+struct.pack('!i',theta)+struct.pack('!i',t1)+struct.pack('!i',t2))
+# 	data = s.recv(4)
+# 	hex_str = binascii.hexlify(data)
+# 	ret_status = hex_to_int(hex_str)
+# 	if not silent:
+# 		if ret_status == 1:
+# 			print ("\t\treturn 1. polar shooting completed")
+# 		else:
+# 			print ("\t\treturn %d. polar shooting failed")
+# 	return ret_status
+#
+# def comm_p_shoot_fast(s, x, y, r, theta, t1, t2, silent=True):
+# 	# theta ranges from -9000~9000, the actual degree is divided by 100 (9025 means 90.25)
+# 	# horizontal is 0 degree. Positive angles shoots upward, negative angles shoots downward
+# 	if not silent:
+# 		print ("\t[OPERATION]: polar shoot (fast)"),
+# 		print ("\t\tshooting params: (%d, %d, %d, %d, %d, %d)" % (x,y,r,theta,t1,t2)),
+# 	s.sendall(get_hex_MID(MID_PFASTSHOOT)+struct.pack('!i',x)+struct.pack('!i',y)+struct.pack('!i',r)+struct.pack('!i',theta)+struct.pack('!i',t1)+struct.pack('!i',t2))
+# 	data = s.recv(4)
+# 	hex_str = binascii.hexlify(data)
+# 	ret_status = hex_to_int(hex_str)
+# 	if not silent:
+# 		if ret_status == 1:
+# 			print ("\t\treturn 1. polar shooting completed")
+# 		else:
+# 			print ("\t\treturn %d. polar shooting failed")
+# 	return ret_status
 
 def comm_click_in_center(s, silent=True):
 	if not silent:
@@ -248,43 +250,43 @@ def comm_fully_zoomout(s, silent=True):
 
 	return ret_status
 
-def comm_fully_zoomin(s, silent=True):
-	if not silent:
-		print ("\t[OPERATION]: fully zoomin"),
-	s.sendall(bytes(get_hex_MID(MID_FULLYZOOMIN)))
-	data = s.recv(1)
-	hex_str = binascii.hexlify(data)
+# def comm_fully_zoomin(s, silent=True):
+# 	if not silent:
+# 		print ("\t[OPERATION]: fully zoomin"),
+# 	s.sendall(bytes(get_hex_MID(MID_FULLYZOOMIN)))
+# 	data = s.recv(1)
+# 	hex_str = binascii.hexlify(data)
+#
+# 	ret_status = hex_to_int(hex_str)
+# 	if not silent:
+# 		if ret_status == 1:
+# 			print ("\t\treturn 1. fully zoomed in")
+# 		else:
+# 			print ("\t\treturn %d. failed to zoom in" % ret_status)
+#
+# 	return ret_status
 
-	ret_status = hex_to_int(hex_str)
-	if not silent:
-		if ret_status == 1:
-			print ("\t\treturn 1. fully zoomed in")
-		else:
-			print ("\t\treturn %d. failed to zoom in" % ret_status)
-
-	return ret_status
-
-def comm_get_best_scores(s, show_scores=True, silent=True):
-	if not silent:
-		print ("\t[OPERATION]: get best scores"),
-	#s.sendall(bytes(get_hex_MID(MID_GETBESTSCORES)))
-	s.sendall(bytes(get_hex_MID(MID_GETMYSCORE)))
-	data = s.recv(1024)
-	hex_str = binascii.hexlify(data)
-	scores = []
-	if len(data)==21*4:
-		for i in range(21):
-			scores.append(hex_to_int(hex_str[i*4:(i+1)*4]))
-
-		if show_scores:
-			if not silent:
-				print ("\t\tscores:")
-				for idx, score in enumerate(scores):
-					print ("\t\t\t[LEVEL %d] %d"%(idx,score))
-
-		return scores
-	else:
-		return None
+# def comm_get_best_scores(s, show_scores=True, silent=True):
+# 	if not silent:
+# 		print ("\t[OPERATION]: get best scores"),
+# 	#s.sendall(bytes(get_hex_MID(MID_GETBESTSCORES)))
+# 	s.sendall(bytes(get_hex_MID(MID_GETMYSCORE)))
+# 	data = s.recv(1024)
+# 	hex_str = binascii.hexlify(data)
+# 	scores = []
+# 	if len(data)==21*4:
+# 		for i in range(21):
+# 			scores.append(hex_to_int(hex_str[i*4:(i+1)*4]))
+#
+# 		if show_scores:
+# 			if not silent:
+# 				print ("\t\tscores:")
+# 				for idx, score in enumerate(scores):
+# 					print ("\t\t\t[LEVEL %d] %d"%(idx,score))
+#
+# 		return scores
+# 	else:
+# 		return None
 
 def comm_do_screenshot(s, save_path=None, silent=True):
 	# pdb.set_trace()
