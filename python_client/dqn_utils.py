@@ -202,7 +202,8 @@ def init_replaymemory(angle_step, exp_path, current_dir, model_name):
             replay_memory.append([state, action, reward, next_state, game_state])
     return replay_memory
 
-def pretrain(replay_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size = 6, discount_factor = 0.99):
+def pretrain(replay_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size = 6, discount_factor = 0.99, pretrain = False):
+
     samples = random.sample(replay_memory, batch_size)
     states_batch, action_batch, reward_batch, next_states_batch, game_state_batch = map(np.array, zip(*samples))
     reward_batch = np.clip(reward_batch/10000, 0, 6)
@@ -234,6 +235,12 @@ def pretrain(replay_memory, valid_angles, valid_taptimes, angle_estimator, tapti
 
     # Perform gradient descent update
     states_batch = np.array(states_batch)
+
+    # if pretrain == True:
     angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch_idx, angle_targets_batch)
     taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
+    # else:
+    #     angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch_idx, angle_targets_batch)
+    #     taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
+            
     return angle_loss, taptime_loss

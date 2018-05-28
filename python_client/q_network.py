@@ -72,7 +72,7 @@ class DQN_Estimator():
             weights['v_b3']=v_b3
             self.v = tf.matmul(L2, v_W3)+v_b3 # relu 거치지 않고, softmax를 함
             self.advantage = tf.matmul(L2, W3)+b3
-            self.actions_q = self.v + (self.advantage - tf.reduce_mean(self.advantage, reduction_indices = 1, keep_dims = True))
+            self.actions_q = self.v + (self.advantage - tf.reduce_mean(self.advantage, reduction_indices = 1, keepdims = True))
         else:
             self.actions_q = tf.matmul(L2, W3)+b3 # relu 거치지 않고, softmax를 함
 
@@ -153,13 +153,19 @@ class DQN_Estimator():
           The calculated loss on the batch.
         """
         # pdb.set_trace()
+        # print('in update')
+        # print()
         feed_dict = { self.X: s, self.actions: a, self.Y: y}
-        summaries, global_step, _, loss = sess.run(
-            [self.summaries, tf.train.get_global_step(), self.train_op, self.loss],
+        # summaries, global_step, _, loss = sess.run(
+        #     [self.summaries, tf.train.get_global_step(), self.train_op, self.loss],
+        #     feed_dict)
+        summaries, _, loss = sess.run(
+            [self.summaries, self.train_op, self.loss],
             feed_dict)
         # summaries, _, loss = sess.run(
             # [self.summaries, self.train_op, self.loss],
             # feed_dict)
         if self.summary_writer:
-            self.summary_writer.add_summary(summaries, global_step)
+            # self.summary_writer.add_summary(summaries, global_step)
+            self.summary_writer.add_summary(summaries)
         return loss
