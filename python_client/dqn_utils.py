@@ -177,7 +177,6 @@ def init_replaymemory(angle_step, exp_path, current_dir, model_name):
         angles = [i for i in range(5,90) if (i%angle_step==0)]
     else:
         angles = range(5,86)
-    dirlist = []
     for angle in angles:
         for filename in glob.iglob("%s/*/*/s_?_%d_*_seg.png"%(exp_path, angle)):
             next_state = os.path.abspath(filename)
@@ -203,7 +202,6 @@ def init_replaymemory(angle_step, exp_path, current_dir, model_name):
     return replay_memory
 
 def pretrain(replay_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size = 6, discount_factor = 0.99, pretrain = False):
-
     samples = random.sample(replay_memory, batch_size)
     states_batch, action_batch, reward_batch, next_states_batch, game_state_batch = map(np.array, zip(*samples))
     reward_batch = np.clip(reward_batch/10000, 0, 6)
@@ -238,3 +236,24 @@ def pretrain(replay_memory, valid_angles, valid_taptimes, angle_estimator, tapti
     angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch_idx, angle_targets_batch)
     taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
     return angle_loss, taptime_loss
+
+def init_oneshot_onekill(exp_path, current_dir, model_name):
+    import os, glob, pickle
+    replay_memory = []
+    dir_list = []
+    png_list = []
+    for filename in glob.iglob("%s/*/*/s_1_*_WON.png_seg.png"%(exp_path)):
+        next_state = os.path.abspath(filename)
+        png_list.append(next_state)
+        dir = os.path.dirname(next_state)
+        dir_list.append(dir)
+        state = glob.glob("%s/s_?.png_seg.png"%dir)
+        action, reward= None, None
+        with open(os.path.join(dir, 'action'), 'rb') as f:
+            action = pickle.load(f)
+        with open(os.path.join(dir, 'reward'), 'rb') as f:
+            reward = pickle.load(f)
+        state = get_feature_4096(model=model_name, img_path=state[0])
+        next_state = get_feature_4096(model=model_name, img_path=next_state)
+        replay_memory.append([state, action, reward, next_state, 'WON'])
+    return replay_memory, dir_list, png_list

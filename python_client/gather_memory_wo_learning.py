@@ -138,7 +138,7 @@ with tf.Session() as sess:
 	####################################################################################
 
 	load_level = 13
-	angle_action_idx = 57
+	angle_action_idx = 59
 	angle_action = valid_angles[angle_action_idx]
 	i_episode=0
 	loss = None # 수정: 여기서 하는게 맞나... Level_selection안에 넣어놨었는데, 여기를 들어가지 않고 실행되는 경우도 있었음
