@@ -295,6 +295,9 @@ with tf.Session() as sess:
 				# make shot for shooting
 				slingshot_rect = None
 				while(slingshot_rect == None or slingshot_rect[0]==-1 or slingshot_rect[1]==-1):
+					is_zoomed_out = 0;
+					while is_zoomed_out !=1:
+						is_zoomed_out = comm.comm_fully_zoomout(s)
 					slingshot_rect = wrapper.get_slingshot(screenshot_path = screenshot_path)
 				ref_point = dqn_utils.get_slingshot_refpoint(slingshot = slingshot_rect)
 				max_mag = slingshot_rect[3]

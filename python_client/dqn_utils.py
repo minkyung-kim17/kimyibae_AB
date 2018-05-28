@@ -144,7 +144,7 @@ def get_score_after_shot(current_dir, parser, comm_socket, start_score):
                 break
             time.sleep(1)
             sleepcount+=1
-            if sleepcount>=10:
+            if sleepcount>=12:
                 save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
                 end_image = comm.comm_do_screenshot(comm_socket, save_path=save_path)
                 break
@@ -235,12 +235,6 @@ def pretrain(replay_memory, valid_angles, valid_taptimes, angle_estimator, tapti
 
     # Perform gradient descent update
     states_batch = np.array(states_batch)
-
-    # if pretrain == True:
     angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch_idx, angle_targets_batch)
     taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
-    # else:
-    #     angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch_idx, angle_targets_batch)
-    #     taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
-            
     return angle_loss, taptime_loss
