@@ -28,14 +28,19 @@ def make_epsilon_greedy_policy(estimator, nA):
     """
     # pdb.set_trace()
     def policy_fn(sess, observation, epsilon):
-        A = np.ones(nA, dtype=float) * epsilon / nA # action 수 만큼의 길이
+        angle_A = np.ones(nA[0], dtype=float) * epsilon / nA[0]
+        taptime_A = np.ones(nA[1], dtype=float) * epsilon / nA[1]
+        # A = np.ones(nA, dtype=float) * epsilon / nA # action 수 만큼의 길이
+
         # pdb.set_trace()
-        q_values = estimator.predict(sess, np.expand_dims(observation, 0))[0]
+        angle_q_values, taptime_q_values = estimator.predict(sess, np.expand_dims(observation, 0))[0]
         # q_values = estimator.predict(sess, observation)[0]
         # pdb.set_trace()
-        best_action = np.argmax(q_values)
-        A[best_action] += (1.0 - epsilon)
-        return A
+        angle_best_action = np.argmax(angle_q_values)
+        taptime_best_action = np.argmax(taptime_q_values)
+        angle_A[angle_best_action] += (1.0 - epsilon)
+        taptime_A[taptime_best_action] += (1.0 - epsilon)
+        return angle_A, taptime_A
     return policy_fn
 
 def get_feature_4096(model, img_path, need_crop = True, need_resize = True):
@@ -144,7 +149,7 @@ def get_score_after_shot(current_dir, parser, comm_socket, start_score):
                 break
             time.sleep(1)
             sleepcount+=1
-            if sleepcount>=12:
+            if sleepcount>=14:
                 save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
                 end_image = comm.comm_do_screenshot(comm_socket, save_path=save_path)
                 break
@@ -201,7 +206,7 @@ def init_replaymemory(angle_step, exp_path, current_dir, model_name):
             replay_memory.append([state, action, reward, next_state, game_state])
     return replay_memory
 
-def pretrain(replay_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size = 6, discount_factor = 0.99, pretrain = False):
+def pretrain(replay_memory, valid_angles, valid_taptimes, estimator, target_estimator, sess, batch_size = 6, discount_factor = 0.99):
     samples = random.sample(replay_memory, batch_size)
     states_batch, action_batch, reward_batch, next_states_batch, game_state_batch = map(np.array, zip(*samples))
     reward_batch = np.clip(reward_batch/10000, 0, 6)
@@ -217,13 +222,13 @@ def pretrain(replay_memory, valid_angles, valid_taptimes, angle_estimator, tapti
 
     # 학습에 넣을 target reward 계산
 
-    angle_q_values_next = angle_estimator.predict(sess, next_states_batch)
+    angle_q_values_next, taptime_q_values = estimator.predict(sess, next_states_batch)
     best_angle_actions = np.argmax(angle_q_values_next, axis=1)
-    taptime_q_values_next = taptime_estimator.predict(sess, next_states_batch)
+    # taptime_q_values_next = taptime_estimator.predict(sess, next_states_batch)
     best_taptime_actions = np.argmax(taptime_q_values_next, axis=1)
 
-    angle_q_values_next_target = angle_target_estimator.predict(sess, next_states_batch)
-    taptime_q_values_next_target = taptime_target_estimator.predict(sess, next_states_batch)
+    angle_q_values_next_target, taptime_q_values_next_target = estimator.predict(sess, next_states_batch)
+    # taptime_q_values_next_target = taptime_target_estimator.predict(sess, next_states_batch)
 
     angle_targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * \
         discount_factor * angle_q_values_next_target[np.arange(batch_size), best_angle_actions]
@@ -233,9 +238,10 @@ def pretrain(replay_memory, valid_angles, valid_taptimes, angle_estimator, tapti
 
     # Perform gradient descent update
     states_batch = np.array(states_batch)
-    angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch_idx, angle_targets_batch)
-    taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
-    return angle_loss, taptime_loss
+    loss = estimator.update(sess, states_batch, angle_action_batch_idx, taptime_action_batch_idx, angle_targets_batch,taptime_targets_batch)
+    # taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
+    # return angle_loss, taptime_loss
+    return loss
 
 def init_oneshot_onekill(exp_path, current_dir, model_name):
     import os, glob, pickle

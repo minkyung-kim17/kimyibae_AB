@@ -4,11 +4,12 @@ import tensorflow as tf
 import pdb
 
 class DQN_Estimator():
-    def __init__(self, scope="estimator", output_size=None, summaries_dir=None):
+    def __init__(self, scope="estimator", angle_output_size=None, taptime_output_size = None, summaries_dir=None):
 
         self.input_size = 4096
         self.hidden_size = [1024, 512]
-        self.output_size = output_size
+        self.angle_output_size = angle_output_size
+        self.taptime_output_size = taptime_output_size
         self.learning_rate = 1e-4
         # self.min_delta = -3
         # self.max_delta = 3
@@ -36,9 +37,11 @@ class DQN_Estimator():
         # Our input are feature vectors of shape 4096 each
         self.X = tf.placeholder(shape=[None, self.input_size], dtype=tf.float32, name='X') # [배치크기, feature size]
         # The TD target value
-        self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name='Y') # 각 state에서 얻을 수 있는 target reward 값
+        self.angle_Y = tf.placeholder(shape=[None], dtype=tf.float32, name='angle_Y') # 각 state에서 얻을 수 있는 target reward 값
+        self.taptime_Y = tf.placeholder(shape=[None], dtype=tf.float32, name='taptime_Y') # 각 state에서 얻을 수 있는 target reward 값
         # Integer id of which action was selected
-        self.actions = tf.placeholder(shape=[None], dtype=tf.int32, name="actions")
+        self.angle_actions = tf.placeholder(shape=[None], dtype=tf.int32, name="angle_actions")
+        self.taptime_actions = tf.placeholder(shape=[None], dtype=tf.int32, name="taptime_actions")
 
         batch_size = tf.shape(self.X)[0]
         weights = {}
@@ -51,8 +54,11 @@ class DQN_Estimator():
         b2 = tf.Variable(tf.random_normal([self.hidden_size[1]], stddev=0.01), name="b2")
         L2 = tf.nn.relu(tf.matmul(L1, W2)+b2)
 
-        W3 = tf.Variable(tf.random_normal([self.hidden_size[1], self.output_size], stddev=0.01), name="W3")
-        b3 = tf.Variable(tf.random_normal([self.output_size], stddev=0.01), name="b3")
+        angle_W3 = tf.Variable(tf.random_normal([self.hidden_size[1], self.angle_output_size, stddev=0.01), name="angle_W3")
+        angle_b3 = tf.Variable(tf.random_normal([self.angle_output_size], stddev=0.01), name="angle_b3")
+
+        taptime_W3 = tf.Variable(tf.random_normal([self.hidden_size[1], self.angle_output_size, stddev=0.01), name="taptime_W3")
+        taptime_b3 = tf.Variable(tf.random_normal([self.angle_output_size], stddev=0.01), name="taptime_b3")
 
         weights['W1']=W1
         weights['b1']=b1
@@ -60,44 +66,60 @@ class DQN_Estimator():
         weights['W2']=W2
         weights['b2']=b2
         weights['L2']=L2
-        weights['W3']=W3
-        weights['b3']=b3
+        weights['angle_W3']=angle_W3
+        weights['angle_b3']=angle_b3
+        weights['taptime_W3']=taptime_W3
+        weights['taptime_b3']=taptime_b3
 
 
         # duel
         if duel == True:
-            v_W3 = tf.Variable(tf.random_normal([self.hidden_size[1], 1], stddev=0.01), name="v_W3")
-            v_b3 = tf.Variable(tf.random_normal([1], stddev=0.01), name="v_b3")
-            weights['v_W3']=v_W3
-            weights['v_b3']=v_b3
-            self.v = tf.matmul(L2, v_W3)+v_b3 # relu 거치지 않고, softmax를 함
-            self.advantage = tf.matmul(L2, W3)+b3
-            self.actions_q = self.v + (self.advantage - tf.reduce_mean(self.advantage, reduction_indices = 1, keepdims = True))
-        else:
-            self.actions_q = tf.matmul(L2, W3)+b3 # relu 거치지 않고, softmax를 함
+            angle_v_W3 = tf.Variable(tf.random_normal([self.hidden_size[1], 1], stddev=0.01), name="angle_v_W3")
+            angle_v_b3 = tf.Variable(tf.random_normal([1], stddev=0.01), name="angle_v_b3")
+            weights['angle_v_W3']=angle_v_W3
+            weights['angle_v_b3']=angle_v_b3
+            self.angle_v = tf.matmul(L2, angle_v_W3)+angle_v_b3 # relu 거치지 않고, softmax를 함
+            self.angle_advantage = tf.matmul(L2, angle_W3)+angle_b3
+            self.angle_actions_q = self.angle_v + (self.angle_advantage - tf.reduce_mean(self.angle_advantage, reduction_indices = 1, keepdims = True))
 
-        self.predictions = tf.nn.softmax(self.actions_q)
-        # self.predictions = tf.contrib.layers.fully_connected(fc1, len(VALID_ACTIONS)) # weight인지, final output인지
+            taptime_v_W3 = tf.Variable(tf.random_normal([self.hidden_size[1], 1], stddev=0.01), name="taptime_v_W3")
+            taptime_v_b3 = tf.Variable(tf.random_normal([1], stddev=0.01), name="taptime_v_b3")
+            weights['taptime_v_W3']=taptime_v_W3
+            weights['taptime_v_b3']=taptime_v_b3
+            self.taptime_v = tf.matmul(L2, angle_v_W3)+angle_v_b3 # relu 거치지 않고, softmax를 함
+            self.taptime_advantage = tf.matmul(L2, angle_W3)+angle_b3
+            self.taptime_actions_q = self.taptime_v + (self.taptime_advantage - tf.reduce_mean(self.taptime_advantage, reduction_indices = 1, keepdims = True))
+        else:
+            self.angle_actions_q = tf.matmul(L2, angle_W3)+angle_b3 # relu 거치지 않고, softmax를 함
+            self.taptime_actions_q = tf.matmul(L2, angle_W3)+taptime_b3 # relu 거치지 않고, softmax를 함
+
+        self.angle_predictions = tf.nn.softmax(self.angle_actions_q)
+        self.taptime_predictions = tf.nn.softmax(self.taptime_actions_q)
+        # self.angle_predictions = tf.contrib.layers.fully_connected(fc1, len(VALID_ACTIONS)) # weight인지, final output인지
         # 수정: 여기가 최종 아웃풋이 되면 되는건지 확인....
         # 여기서 tf.nn.softmax(tf.matmul(L2, W3)+b3)를 하지 않아도 되는지...
 
         # Get the predictions for the chosen actions only
-        # gather_indices = tf.range(batch_size) * tf.shape(self.predictions)[1] + self.actions # ?? 찍어보면 좋을듯
-        # self.action_predictions = tf.gather(tf.reshape(self.predictions, [-1]), gather_indices) # ??
+        # gather_indices = tf.range(batch_size) * tf.shape(self.angle_predictions)[1] + self.angle_actions # ?? 찍어보면 좋을듯
+        # self.action_predictions = tf.gather(tf.reshape(self.angle_predictions, [-1]), gather_indices) # ??
 
-        self.action_one_hot = tf.one_hot(self.actions, self.output_size, 1.0, 0.0, name='action_one_hot')
-        predictions_of_chosen_action =  tf.reduce_sum(self.actions_q*self.action_one_hot, reduction_indices = 1)
+        self.angle_action_one_hot = tf.one_hot(self.angle_actions, self.angle_output_size, 1.0, 0.0, name='angle_action_one_hot')
+        predictions_of_chosen_angle_action =  tf.reduce_sum(self.angle_actions_q*self.angle_action_one_hot, reduction_indices = 1)
 
-        # self.delta = self.Y - self.predictions[self.actions] # 이런식으로 indexing이 안되는거 같음.....
-        self.delta = self.Y - predictions_of_chosen_action
-        # self.clipped_delta = tf.clip_by_value(self.delta, self.min_delta, self.max_delta, name="clipped_delta")
+        self.taptime_action_one_hot = tf.one_hot(self.taptime_actions, self.taptime_output_size, 1.0, 0.0, name='taptime_action_one_hot')
+        predictions_of_chosen_taptime_action =  tf.reduce_sum(self.taptime_actions_q*self.taptime_action_one_hot, reduction_indices = 1)
+        # self.angle_delta = self.angle_Y - self.angle_predictions[self.angle_actions] # 이런식으로 indexing이 안되는거 같음.....
+        self.angle_delta = self.angle_Y - predictions_of_chosen_angle_action
+        self.taptime_delta = self.taptime_Y - predictions_of_chosen_taptime_action
+        # self.clipped_delta = tf.clip_by_value(self.angle_delta, self.min_delta, self.max_delta, name="clipped_delta")
 
         # Calculate the loss
         # self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=cost, labels=Y))
         # self.losses = tf.squared_difference(self.Y, self.action_predictions) # target_value랑 action?
         # self.loss = tf.reduce_mean(self.losses)
-        self.loss = tf.reduce_mean(tf.square(self.delta), name="loss")
-
+        angle_loss = tf.reduce_mean(tf.square(self.angle_delta))
+        taptime_loss = tf.reduce_mean(tf.square(self.taptime_delta))
+        self.loss = tf.Variable(angle_loss+taptime_loss, name = "loss")
         # Optimizer Parameters from original paper
         # self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
         # self.train_op = self.optimizer.minimize(self.loss, global_step=tf.train.get_global_step())
@@ -119,8 +141,10 @@ class DQN_Estimator():
         # Summaries for Tensorboard
         self.summaries = tf.summary.merge([
             tf.summary.scalar("loss", self.loss),
-            tf.summary.histogram("q_values_hist", self.predictions),
-            tf.summary.scalar("max_q_value", tf.reduce_max(self.predictions))
+            tf.summary.histogram("angle_q_values_hist", self.angle_predictions),
+            tf.summary.scalar("angle_max_q_value", tf.reduce_max(self.angle_predictions))
+            tf.summary.histogram("taptime_q_values_hist", self.taptime_predictions),
+            tf.summary.scalar("taptime_max_q_value", tf.reduce_max(self.angletaptimeictions))
         ])
         return weights
 
@@ -137,9 +161,9 @@ class DQN_Estimator():
           action values.
         """
         # pdb.set_trace()
-        return sess.run(self.predictions, {self.X: s})
+        return sess.run(self.angle_predictions, self.taptime_predictions, {self.X: s})
 
-    def update(self, sess, s, a, y):
+    def update(self, sess, s, angle_a, taptime_a, angle_y, taptime_y):
         """
         Updates the estimator towards the given targets.
 
@@ -155,7 +179,7 @@ class DQN_Estimator():
         # pdb.set_trace()
         # print('in update')
         # print()
-        feed_dict = { self.X: s, self.actions: a, self.Y: y}
+        feed_dict = { self.X: s, self.angle_actions: angle_a, self.taptime_actions: taptime_a, self.angle_Y: angle_y, self.taptime_Y: taptime_y}
         # summaries, global_step, _, loss = sess.run(
         #     [self.summaries, tf.train.get_global_step(), self.train_op, self.loss],
         #     feed_dict)
