@@ -4,7 +4,7 @@ import tensorflow as tf
 import pdb
 
 class DQN_Estimator():
-    def __init__(self, scope="estimator_default", angle_output_size=None, taptime_output_size = None, summaries_dir=None):
+    def __init__(self, batch_size = 6, scope="estimator_default", angle_output_size=None, taptime_output_size = None, summaries_dir=None):
 
         self.input_size = 4096
         self.hidden_size = [1024, 512]
@@ -14,6 +14,7 @@ class DQN_Estimator():
         # self.min_delta = -3
         # self.max_delta = 3
         self.clip_delta = 1.0
+        self.batch_size = batch_size
 
         self.scope = scope
         # Writes Tensorboard summaries to disk
@@ -34,13 +35,13 @@ class DQN_Estimator():
 
         # Placeholders for our Q-network
         # Our input are feature vectors of shape 4096 each
-        self.X = tf.placeholder(shape=[None, self.input_size], dtype=tf.float32, name='X') # [배치크기, feature size]
+        self.X = tf.Variable(tf.zeros([self.batch_size, self.input_size], dtype=tf.float32), name='X') # [배치크기, feature size]
         # The TD target value
-        self.angle_Y = tf.placeholder(shape=[None], dtype=tf.float32, name='angle_Y') # 각 state에서 얻을 수 있는 target reward 값
-        self.taptime_Y = tf.placeholder(shape=[None], dtype=tf.float32, name='taptime_Y') # 각 state에서 얻을 수 있는 target reward 값
+        self.angle_Y = tf.Variable(tf.zeros([self.batch_size], dtype=tf.float32), name='angle_Y') # 각 state에서 얻을 수 있는 target reward 값
+        self.taptime_Y = tf.Variable(tf.zeros([self.batch_size], dtype=tf.float32), name='taptime_Y') # 각 state에서 얻을 수 있는 target reward 값
         # Integer id of which action was selected
-        self.angle_actions = tf.placeholder(shape=[None], dtype=tf.int32, name="angle_actions") # idx
-        self.taptime_actions = tf.placeholder(shape=[None], dtype=tf.int32, name="taptime_actions")
+        self.angle_actions = tf.Variable(tf.zeros([self.batch_size], dtype=tf.int32), name="angle_actions") # idx
+        self.taptime_actions = tf.Variable(tf.zeros([self.batch_size], dtype=tf.int32), name="taptime_actions")
 
         # batch_size = tf.shape(self.X)[0]
         weights = {}
@@ -160,7 +161,7 @@ class DQN_Estimator():
           action values.
         """
         # pdb.set_trace()
-        return sess.run(self.angle_predictions, self.taptime_predictions, {self.X: s})
+        return sess.run([self.angle_predictions, self.taptime_predictions], {self.X: s})
 
     def update(self, sess, s, angle_a, taptime_a, angle_y, taptime_y):
         """

@@ -33,7 +33,7 @@ def make_epsilon_greedy_policy(estimator, nA):
         # A = np.ones(nA, dtype=float) * epsilon / nA # action 수 만큼의 길이
 
         # pdb.set_trace()
-        angle_q_values, taptime_q_values = estimator.predict(sess, np.expand_dims(observation, 0))[0]
+        [angle_q_values, taptime_q_values] = estimator.predict(sess, np.expand_dims(observation, 0))[0]
         # q_values = estimator.predict(sess, observation)[0]
         # pdb.set_trace()
         angle_best_action = np.argmax(angle_q_values)
@@ -222,12 +222,12 @@ def pretrain(replay_memory, valid_angles, valid_taptimes, estimator, target_esti
 
     # 학습에 넣을 target reward 계산
 
-    angle_q_values_next, taptime_q_values = estimator.predict(sess, next_states_batch)
+    [angle_q_values_next, taptime_q_values_next] = estimator.predict(sess, next_states_batch)
     best_angle_actions = np.argmax(angle_q_values_next, axis=1)
     # taptime_q_values_next = taptime_estimator.predict(sess, next_states_batch)
     best_taptime_actions = np.argmax(taptime_q_values_next, axis=1)
 
-    angle_q_values_next_target, taptime_q_values_next_target = estimator.predict(sess, next_states_batch)
+    [angle_q_values_next_target, taptime_q_values_next_target] = estimator.predict(sess, next_states_batch)
     # taptime_q_values_next_target = taptime_target_estimator.predict(sess, next_states_batch)
 
     angle_targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * \
