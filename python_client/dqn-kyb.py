@@ -80,8 +80,11 @@ valid_taptimes = list(range(500, 2501, 100))  # 500부터 2500까지 100씩 증�
 # Create a global step variable
 global_step = tf.Variable(0, name='global_step', trainable=False)
 
-estimator = q_network.DQN_Estimator(scope="angle_estimator", angle_output_size=len(valid_angles), taptime_output_size=len(valid_taptimes), summaries_dir=SUMM_PATH)
-target_estimator = q_network.DQN_Estimator(scope="angle_estimator", angle_output_size=len(valid_angles), taptime_output_size=len(valid_taptimes))
+estimator = q_network.DQN_Estimator(scope="estimator", angle_output_size=len(valid_angles), taptime_output_size=len(valid_taptimes), summaries_dir=SUMM_PATH)
+target_estimator = q_network.DQN_Estimator(scope="target_estimator", angle_output_size=len(valid_angles), taptime_output_size=len(valid_taptimes))
+
+pdb.set_trace()
+
 # angle_estimator, angle_target_estimator = DQN_Estimator(obs_size, sess, fe, sc_parser, "angle", valid_angles) # 수정 필요
 # taptime_estimator, taptime_target_estimator = DQN_Estimator(obs_size, sess, fe, sc_parser, "taptime", valid_taptimes) # 수정 필요
 
@@ -96,7 +99,7 @@ stats = EpisodeStats( # level별 episode_length랑, episode_reward를 저장해 
 # pdb.set_trace()
 
 with tf.Session() as sess:
-	sess.run(tf.global_variables_initializer())
+	sess.run(tf.global_variables_initializer()) # 여기서 에러
 
 	# pdb.set_trace()
 	saver = tf.train.Saver()
@@ -146,13 +149,15 @@ with tf.Session() as sess:
 
 	while True:
 	# pdb.set_trace()
-		angle_loss, taptime_loss = dqn_utils.pretrain(pretrain_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor, pretrain = True)
+		# angle_loss, taptime_loss = dqn_utils.pretrain(pretrain_memory, valid_angles, valid_taptimes, estimator, target_estimator, sess, batch_size, discount_factor)
+		loss = dqn_utils.pretrain(pretrain_memory, valid_angles, valid_taptimes, estimator, target_estimator, sess, batch_size, discount_factor)
 		saver.save(sess, checkpoint_path)
 		total_t += 1
 		if total_t % update_target_estimator_every == 0:
-			dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
-			dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
-			print("total_t:", total_t, "angle_loss:", angle_loss, "taptime_loss;", taptime_loss)
+			dqn_utils.copy_model_parameters(sess, estimator, target_estimator)
+			# dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
+			# print("total_t:", total_t, "angle_loss:", angle_loss, "taptime_loss;", taptime_loss)
+			print("total_t:", total_t, "loss:", loss)
 
 	# threads= []
 	# import threading
@@ -174,8 +179,8 @@ with tf.Session() as sess:
 	i_episodes = [0]*21 # 각 레벨별 episode수
 
 	# loss = None # 왠지 단순히 print하려고 하는것 같음
-	dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
-	dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
+	dqn_utils.copy_model_parameters(sess, estimator, target_estimator)
+	# dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
 
 	while True:
 
@@ -351,7 +356,7 @@ with tf.Session() as sess:
 
 
 				if len(replay_memory) > batch_size:
-					loss = dqn_utils.pretrain(replay_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor)
+					loss = dqn_utils.pretrain(replay_memory, valid_angles, valid_taptimes, estimator, target_estimator, sess, batch_size, discount_factor)
 					# samples = random.sample(replay_memory, batch_size)
 					# states_batch, action_batch, reward_batch, next_states_batch, game_state_batch = map(np.array, zip(*samples))
 					# reward_batch = np.clip(reward_batch/10000, 0, 6)

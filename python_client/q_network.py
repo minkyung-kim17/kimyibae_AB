@@ -4,7 +4,7 @@ import tensorflow as tf
 import pdb
 
 class DQN_Estimator():
-    def __init__(self, scope="estimator", angle_output_size=None, taptime_output_size = None, summaries_dir=None):
+    def __init__(self, scope="estimator_default", angle_output_size=None, taptime_output_size = None, summaries_dir=None):
 
         self.input_size = 4096
         self.hidden_size = [1024, 512]
@@ -32,7 +32,6 @@ class DQN_Estimator():
         Builds the Tensorflow graph.
         """
 
-
         # Placeholders for our Q-network
         # Our input are feature vectors of shape 4096 each
         self.X = tf.placeholder(shape=[None, self.input_size], dtype=tf.float32, name='X') # [배치크기, feature size]
@@ -40,10 +39,10 @@ class DQN_Estimator():
         self.angle_Y = tf.placeholder(shape=[None], dtype=tf.float32, name='angle_Y') # 각 state에서 얻을 수 있는 target reward 값
         self.taptime_Y = tf.placeholder(shape=[None], dtype=tf.float32, name='taptime_Y') # 각 state에서 얻을 수 있는 target reward 값
         # Integer id of which action was selected
-        self.angle_actions = tf.placeholder(shape=[None], dtype=tf.int32, name="angle_actions")
+        self.angle_actions = tf.placeholder(shape=[None], dtype=tf.int32, name="angle_actions") # idx
         self.taptime_actions = tf.placeholder(shape=[None], dtype=tf.int32, name="taptime_actions")
 
-        batch_size = tf.shape(self.X)[0]
+        # batch_size = tf.shape(self.X)[0]
         weights = {}
         # Neural network with 2 hidden layer
         W1 = tf.Variable(tf.random_normal([self.input_size, self.hidden_size[0]], stddev=0.01), name="W1")
@@ -54,11 +53,11 @@ class DQN_Estimator():
         b2 = tf.Variable(tf.random_normal([self.hidden_size[1]], stddev=0.01), name="b2")
         L2 = tf.nn.relu(tf.matmul(L1, W2)+b2)
 
-        angle_W3 = tf.Variable(tf.random_normal([self.hidden_size[1], self.angle_output_size, stddev=0.01), name="angle_W3")
+        angle_W3 = tf.Variable(tf.random_normal([self.hidden_size[1], self.angle_output_size], stddev=0.01), name="angle_W3")
         angle_b3 = tf.Variable(tf.random_normal([self.angle_output_size], stddev=0.01), name="angle_b3")
 
-        taptime_W3 = tf.Variable(tf.random_normal([self.hidden_size[1], self.angle_output_size, stddev=0.01), name="taptime_W3")
-        taptime_b3 = tf.Variable(tf.random_normal([self.angle_output_size], stddev=0.01), name="taptime_b3")
+        taptime_W3 = tf.Variable(tf.random_normal([self.hidden_size[1], self.taptime_output_size], stddev=0.01), name="taptime_W3")
+        taptime_b3 = tf.Variable(tf.random_normal([self.taptime_output_size], stddev=0.01), name="taptime_b3")
 
         weights['W1']=W1
         weights['b1']=b1
@@ -86,12 +85,12 @@ class DQN_Estimator():
             taptime_v_b3 = tf.Variable(tf.random_normal([1], stddev=0.01), name="taptime_v_b3")
             weights['taptime_v_W3']=taptime_v_W3
             weights['taptime_v_b3']=taptime_v_b3
-            self.taptime_v = tf.matmul(L2, angle_v_W3)+angle_v_b3 # relu 거치지 않고, softmax를 함
-            self.taptime_advantage = tf.matmul(L2, angle_W3)+angle_b3
+            self.taptime_v = tf.matmul(L2, taptime_v_W3)+taptime_v_b3 # relu 거치지 않고, softmax를 함
+            self.taptime_advantage = tf.matmul(L2, taptime_W3)+taptime_b3
             self.taptime_actions_q = self.taptime_v + (self.taptime_advantage - tf.reduce_mean(self.taptime_advantage, reduction_indices = 1, keepdims = True))
         else:
             self.angle_actions_q = tf.matmul(L2, angle_W3)+angle_b3 # relu 거치지 않고, softmax를 함
-            self.taptime_actions_q = tf.matmul(L2, angle_W3)+taptime_b3 # relu 거치지 않고, softmax를 함
+            self.taptime_actions_q = tf.matmul(L2, taptime_W3)+taptime_b3 # relu 거치지 않고, softmax를 함
 
         self.angle_predictions = tf.nn.softmax(self.angle_actions_q)
         self.taptime_predictions = tf.nn.softmax(self.taptime_actions_q)
@@ -142,9 +141,9 @@ class DQN_Estimator():
         self.summaries = tf.summary.merge([
             tf.summary.scalar("loss", self.loss),
             tf.summary.histogram("angle_q_values_hist", self.angle_predictions),
-            tf.summary.scalar("angle_max_q_value", tf.reduce_max(self.angle_predictions))
+            tf.summary.scalar("angle_max_q_value", tf.reduce_max(self.angle_predictions)),
             tf.summary.histogram("taptime_q_values_hist", self.taptime_predictions),
-            tf.summary.scalar("taptime_max_q_value", tf.reduce_max(self.angletaptimeictions))
+            tf.summary.scalar("taptime_max_q_value", tf.reduce_max(self.taptime_predictions))
         ])
         return weights
 

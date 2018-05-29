@@ -238,7 +238,8 @@ def pretrain(replay_memory, valid_angles, valid_taptimes, estimator, target_esti
 
     # Perform gradient descent update
     states_batch = np.array(states_batch)
-    loss = estimator.update(sess, states_batch, angle_action_batch_idx, taptime_action_batch_idx, angle_targets_batch,taptime_targets_batch)
+    loss = estimator.update(sess, states_batch, angle_action_batch_idx, taptime_action_batch_idx, angle_targets_batch, taptime_targets_batch)
+
     # taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
     # return angle_loss, taptime_loss
     return loss
