@@ -47,62 +47,110 @@ run_start_dir = os.path.join(EXP_PATH, "startAt_%s"%time.strftime("%Y%m%d_%H%M")
 
 # while True:
 # 	pass
+
+####################################################################################
+print('Gazua Angry Bird!') #########################################################
+####################################################################################
+
+update_target_estimator_every = 10
+
+#################################
+##### Initialize game environment
+# connect to Server
+print('Initialize connection to ABServer')
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.settimeout(20)
+s.connect(('localhost',2004))
+_,_,_ = comm.comm_configure(s, 1004)
+
+# connect to Java
+wrapper = wrap.WrapperPython('127.0.0.1')
+
+# initialize tensorflow session
+# tf.reset_default_graph() # ??
+# sess = tf.Session()
+
+# initialize feature extraction
 vgg16 = VGG16(weights= 'imagenet')
 
-# oneshotonekill_memory, oneshotonekill_dir, oneshotonekill_path  = dqn_utils.init_oneshot_onekill(EXP_PATH, current_dir, vgg16)
-# oneshotonekill_angles = {}
-# oneshotonekill_taptimes = {}
-# with open(os.path.join(EXP_PATH, 'oneshotonekill_memory'), 'wb') as f:
-# 	pickle.dump(oneshotonekill_memory, f)
-# with open(os.path.join(EXP_PATH, 'oneshotonekill_dir'), 'wb') as f:
-# 	pickle.dump(oneshotonekill_dir, f)
-# with open(os.path.join(EXP_PATH, 'oneshotonekill_path'), 'wb') as f:
-# 	pickle.dump(oneshotonekill_path, f)
-# for i in range(len(oneshotonekill_path)):
-# 	angle_action = oneshotonekill_memory[i][1][0]
-# 	tap_action = oneshotonekill_memory[i][1][1]
-# 	reward = oneshotonekill_memory[i][2]
-# 	oneshotonekill_logger.debug("%s [%d, %d] %d"%(oneshotonekill_path[i], angle_action, tap_action, reward))
-# 	if angle_action in oneshotonekill_angles:
-# 		oneshotonekill_angles[angle_action].append(reward)
-# 	else:
-# 		oneshotonekill_angles[angle_action] = [reward]
-# 	if tap_action in oneshotonekill_taptimes:
-# 		oneshotonekill_taptimes[tap_action].append(reward)
-# 	else:
-# 		oneshotonekill_taptimes[angle_action] = [reward]
-# with open(os.path.join(EXP_PATH, 'oneshotonekill_angles'), 'wb') as f:
-# 	pickle.dump(oneshotonekill_angles, f)
-# with open(os.path.join(EXP_PATH, 'oneshotonekill_taptimes'), 'wb') as f:
-# 	pickle.dump(oneshotonekill_taptimes, f)
-# print('logger done')
-# oneshotonekill_logger.debug(oneshotonekill_angles.keys())
-# oneshotonekill_logger.debug(oneshotonekill_taptimes.keys())
-oneshotonekill_memory = []
-oneshotonekill_dir = []
-oneshotonekill_angles = {}
-oneshotonekill_taptimes = {}
-levels = {'level1':[], 'level2':[], 'level3':[], 'level4':[], 'level5':[], 'level6':[], 'level7':[], 'level8':[],\
-		'level9':[], 'level10':[], 'level11':[], 'level12':[], 'level13':[], 'level14':[], 'level15':[], 'level16':[],	\
-		'level17':[], 'level18':[], 'level19':[], 'level20':[], 'level21':[]}
-with open(os.path.join(EXP_PATH, 'oneshotonekill_dir'), 'rb') as f:
-	oneshotonekill_dir = pickle.load(f)
-with open(os.path.join(EXP_PATH, 'oneshotonekill_memory'), 'rb') as f:
-	oneshotonekill_memory = pickle.load(f)
-with open(os.path.join(EXP_PATH, 'oneshotonekill_angles'), 'rb') as f:
-	oneshotonekill_angles = pickle.load(f)
-with open(os.path.join(EXP_PATH, 'oneshotonekill_taptimes'), 'rb') as f:
-	oneshotonekill_taptimes = pickle.load(f)
+# set the action sets
+valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
+valid_taptimes = list(range(500, 2501, 100))  # 500부터 2500까지 100씩 증가
 
-levelkeys = levels.keys()
-print("start to save levelkeys")
-for idx in range(len(oneshotonekill_dir)):
-	for key in levelkeys:
-		if key in oneshotonekill_dir[idx]:
-			action = oneshotonekill_memory[idx][1]
-			reward = oneshotonekill_memory[idx][2]
-			levels[key].append({'action':action, 'reward': reward})
-			oneshotonekill_logger.debug("{} {} angle {} tap {} reward {}".format(oneshotonekill_dir[idx], key, action[0], action[1], reward) )
+# Create a global step variable
+global_step = tf.Variable(0, name='global_step', trainable=False)
 
-with open(os.path.join(EXP_PATH, 'oneshotonekill_sortlevel'), 'wb') as f:
-	pickle.dump(levels, f)
+angle_estimator = q_network.DQN_Estimator(scope="angle_estimator", output_size=len(valid_angles), summaries_dir=SUMM_PATH)
+angle_target_estimator = q_network.DQN_Estimator(scope="angle_target_estimator", output_size=len(valid_angles))
+taptime_estimator = q_network.DQN_Estimator(scope="taptime_estimator", output_size=len(valid_taptimes), summaries_dir=SUMM_PATH)
+taptime_target_estimator = q_network.DQN_Estimator(scope="taptime_target_estimator", output_size=len(valid_taptimes))
+# angle_estimator, angle_target_estimator = DQN_Estimator(obs_size, sess, fe, sc_parser, "angle", valid_angles) # 수정 필요
+# taptime_estimator, taptime_target_estimator = DQN_Estimator(obs_size, sess, fe, sc_parser, "taptime", valid_taptimes) # 수정 필요
+
+# Keeps track of useful statistics
+EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
+
+
+stats = EpisodeStats( # level별 episode_length랑, episode_reward를 저장해 둘 수 있는 list
+        episode_lengths=[[] for i in range(21)],
+        episode_rewards=[[] for i in range(21)])
+
+# pdb.set_trace()
+
+with tf.Session() as sess:
+	sess.run(tf.global_variables_initializer())
+
+	# pdb.set_trace()
+	saver = tf.train.Saver()
+
+	latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir) # path를 반환
+	if latest_checkpoint:
+		print("Loading model checkpoint {}...\n".format(latest_checkpoint))
+		saver.restore(sess, latest_checkpoint)
+
+	total_t = sess.run(tf.train.get_global_step()) # 처음에 안됐었던 이유는, global_step이란 tensor 변수를 안만들어서임
+
+	##
+	epsilon_start = 1.0
+	epsilon_end = 0.1
+	epsilon_decay_steps = 500000
+	epsilons = np.linspace(epsilon_start, epsilon_end, epsilon_decay_steps)
+
+	policy_angle = dqn_utils.make_epsilon_greedy_policy(
+	        angle_estimator,
+	        len(valid_angles))
+
+	policy_taptime = dqn_utils.make_epsilon_greedy_policy(
+	        taptime_estimator,
+	        len(valid_taptimes))
+
+	########################################
+	##### Populating replay memory (size: N)
+	# 원래는 랜덤하게 N번의 shot을 해서 replay_memory를 채워야 하지만...
+	# 각 레벨별로, 0도부터 90도까지 쏜 데이터를 replay_memory로 함.
+	# pre_train을 넣어서, 이 replay_memory로 학습을 한 weight를 가져와서 시작하는 것도 고려.
+	batch_size = 6
+	discount_factor = 0.99
+	Transition = namedtuple("Transition", ["state", "action", "reward", "next_state", "game_state"])
+	replay_memory_size = 500000
+	print('Populating replay memory...')
+	replay_memory = []
+	# replay_memory = np.load('').tolist()
+
+	#####################
+	##### Checkpoint load
+	oneshotonekill_memory, oneshotonekill_dir, oneshotonekill_path  = dqn_utils.init_oneshot_onekill(EXP_PATH, current_dir, vgg16)
+	with open(os.path.join(EXP_PATH, 'oneshotonekill_memory'), 'wb') as f:
+		pickle.dump(oneshotonekill_memory, f)
+	with open(os.path.join(EXP_PATH, 'oneshotonekill_dir'), 'wb') as f:
+		pickle.dump(oneshotonekill_dir, f)
+	with open(os.path.join(EXP_PATH, 'oneshotonekill_path'), 'wb') as f:
+		pickle.dump(oneshotonekill_path, f)
+	for i in range(len(oneshotonekill_path)):
+		oneshotonekill_logger.debug("%s [%d, %d] %d"%(oneshotonekill_path[i], oneshotonekill_memory[i][1][0], oneshotonekill_memory[i][1][1], oneshotonekill_memory[i][2]))
+	print('logger done')
+	while True:
+		pass
+
+
+	print("session 종료")

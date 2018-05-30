@@ -1,0 +1,18 @@
+startAt_20180529_1450_1~81	level15 (degree5~85)
+
+startAt_20180529_1450_82~162	level16 (degree5~85)
+
+startAt_20180529_1450_163~243	level17 (degree5~85)
+
+startAt_20180529_1450_244~304 	level18 (degree5~65)
+startAt_20180530_0404_1~20	level18 (degree66~85)
+
+startAt_20180530_0404_21~31	level19 (degree5~15)
+
+startAt_20180530_1649_1~20	level19 (degree21~40)
+
+startAt_20180530_1849_1~41	level19 (degree45~85)
+
+startAt_20180530_2105_1~	level20 (degree5~ )
+
+

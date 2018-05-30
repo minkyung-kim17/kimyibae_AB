@@ -1,4 +1,4 @@
-import os, inspect, logging, glob, time, math, itertools, sys, shutil, plotting, pickle, random
+import os, inspect, logging, glob, time, math, itertools, sys, shutil, pickle, random
 from collections import deque, namedtuple
 import socket
 from PIL import Image
@@ -30,8 +30,8 @@ SCR_PATH=os.path.join(current_dir,"screenshots")
 
 if not os.path.exists(EXP_PATH):
 			os.mkdir(EXP_PATH)
-# if not os.path.exists(SCR_PATH):
-			# os.mkdir(SCR_PATH)
+if not os.path.exists(SCR_PATH):
+			os.mkdir(SCR_PATH)
 
 checkpoint_dir = os.path.join(current_dir, "checkpoints_gathering")
 checkpoint_path = os.path.join(checkpoint_dir, "model") # checkpoint file path
@@ -137,8 +137,8 @@ with tf.Session() as sess:
 	print('Start Learning!') ### 게임을 하면서, 학습을 하면서, policy를 업데이트 ##########
 	####################################################################################
 
-	load_level = 13
-	angle_action_idx = 59
+	load_level = 20
+	angle_action_idx = 0
 	angle_action = valid_angles[angle_action_idx]
 	i_episode=0
 	loss = None # 수정: 여기서 하는게 맞나... Level_selection안에 넣어놨었는데, 여기를 들어가지 않고 실행되는 경우도 있었음
