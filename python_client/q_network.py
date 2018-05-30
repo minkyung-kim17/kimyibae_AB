@@ -167,8 +167,7 @@ class DQN_Estimator():
         """
         Updates the estimator towards the given targets.
 
-        Args:
-          sess: Tensorflow session object
+        Args:p          ses: Tensorflow session object
           s: State input of shape [batch_size, 4, 160, 160, 3]
           a: Chosen actions of shape [batch_size]
           y: Targets of shape [batch_size]

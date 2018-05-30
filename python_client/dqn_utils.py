@@ -33,7 +33,7 @@ def make_epsilon_greedy_policy(estimator, nA):
         # A = np.ones(nA, dtype=float) * epsilon / nA # action 수 만큼의 길이
 
         # pdb.set_trace()
-        [angle_q_values, taptime_q_values] = estimator.predict(sess, np.expand_dims(observation, 0))[0]
+        [angle_q_values, taptime_q_values] = estimator.predict(sess, np.expand_dims(observation, 0))
         # q_values = estimator.predict(sess, observation)[0]
         # pdb.set_trace()
         angle_best_action = np.argmax(angle_q_values)
