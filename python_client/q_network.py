@@ -14,7 +14,6 @@ class DQN_Estimator():
         # self.min_delta = -3
         # self.max_delta = 3
         self.clip_delta = 1.0
-        self.batch_size = batch_size
 
         self.scope = scope
         # Writes Tensorboard summaries to disk
@@ -35,13 +34,13 @@ class DQN_Estimator():
 
         # Placeholders for our Q-network
         # Our input are feature vectors of shape 4096 each
-        self.X = tf.Variable(tf.zeros([self.batch_size, self.input_size], dtype=tf.float32), name='X') # [배치크기, feature size]
+        self.X = tf.placeholder(shape=[None, self.input_size], dtype=tf.float32, name='X') # [배치크기, feature size]
         # The TD target value
-        self.angle_Y = tf.Variable(tf.zeros([self.batch_size], dtype=tf.float32), name='angle_Y') # 각 state에서 얻을 수 있는 target reward 값
-        self.taptime_Y = tf.Variable(tf.zeros([self.batch_size], dtype=tf.float32), name='taptime_Y') # 각 state에서 얻을 수 있는 target reward 값
+        self.angle_Y = tf.placeholder(shape=[None], dtype=tf.float32, name='angle_Y') # 각 state에서 얻을 수 있는 target reward 값
+        self.taptime_Y = tf.placeholder(shape=[None], dtype=tf.float32, name='taptime_Y') # 각 state에서 얻을 수 있는 target reward 값
         # Integer id of which action was selected
-        self.angle_actions = tf.Variable(tf.zeros([self.batch_size], dtype=tf.int32), name="angle_actions") # idx
-        self.taptime_actions = tf.Variable(tf.zeros([self.batch_size], dtype=tf.int32), name="taptime_actions")
+        self.angle_actions = tf.placeholder(shape=[None], dtype=tf.int32, name="angle_actions") # idx
+        self.taptime_actions = tf.placeholder(shape=[None], dtype=tf.int32, name="taptime_actions")
 
         # batch_size = tf.shape(self.X)[0]
         weights = {}
@@ -119,7 +118,7 @@ class DQN_Estimator():
         # self.loss = tf.reduce_mean(self.losses)
         angle_loss = tf.reduce_mean(tf.square(self.angle_delta))
         taptime_loss = tf.reduce_mean(tf.square(self.taptime_delta))
-        self.loss = tf.Variable(angle_loss+taptime_loss, name = "loss")
+        self.loss = tf.add(angle_loss,taptime_loss, name = "loss")
         # Optimizer Parameters from original paper
         # self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
         # self.train_op = self.optimizer.minimize(self.loss, global_step=tf.train.get_global_step())
