@@ -264,3 +264,44 @@ def init_oneshot_onekill(exp_path, current_dir, model_name):
         next_state = get_feature_4096(model=model_name, img_path=next_state)
         replay_memory.append([state, action, reward, next_state, 'WON'])
     return replay_memory, dir_list, png_list
+
+def init_twoshot_onekill(exp_path, current_dir, model_name):
+    import os, glob, pickle
+    replay_memory = []
+    dir_list = []
+    png_list = []
+    for filename in glob.iglob("%s/*/*/s_2_*_WON.png_seg.png"%(exp_path)):
+
+        #shot2에서 이기는 것을 oneshot onekill과 같이 저장
+        next_state = os.path.abspath(filename)
+        png_list.append(next_state)
+        dir = os.path.dirname(next_state)
+        dir_list.append(dir)
+        state = glob.glob("%s/s_?.png_seg.png"%dir)
+        action, reward= None, None
+        with open(os.path.join(dir, 'action'), 'rb') as f:
+            action = pickle.load(f)
+        with open(os.path.join(dir, 'reward'), 'rb') as f:
+            reward = pickle.load(f)
+        state = get_feature_4096(model=model_name, img_path=state[0])
+        next_state = get_feature_4096(model=model_name, img_path=next_state)
+        replay_memory.append([state, action, reward, next_state, 'WON'])
+
+        #이 때 이전 shot1의 정보도 저장해야 함.
+        dir = os.path.dirname(dir) # 그 폴더의 상위 폴더, 여기에 있는 s0~~ 폴더 안에서 샷도 뽑아야 함
+        dir = glob.glob("%s/*_shot0_*"%(dir)) #여기에 있는 s0폴더로 들어왔음!
+        dir = dir[0]
+        next_state = glob.glob("%s/*_PLAYING.png_seg.png"%dir)
+        png_list.append(next_state)
+        dir_list.append(dir)
+        state = glob.glob("%s/s_?.png_seg.png"%dir)
+        action, reward= None, None
+        with open(os.path.join(dir, 'action'), 'rb') as f:
+            action = pickle.load(f)
+        with open(os.path.join(dir, 'reward'), 'rb') as f:
+            reward = pickle.load(f)
+        state = get_feature_4096(model=model_name, img_path=state[0])
+        next_state = get_feature_4096(model=model_name, img_path=next_state[0])
+        replay_memory.append([state, action, reward, next_state, 'PLAYING'])
+
+    return replay_memory, dir_list, png_list
