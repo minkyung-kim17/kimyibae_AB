@@ -1,0 +1,17 @@
+***** 두 모델(single, parallel)이 공통으로 사용
+** screenshots: 게임 중 스크린샷 임시저장 폴더
+** experiences_gathering: 게임 중 에피소드 저장 폴더
+	- startAt_날짜_코드실행시간_에피소드번호
+		- 레벨_슛넘버_날짜_시간
+			- action, reward, state, next_state (+ game_state: 이건 dqn_utils에 init_memory에서 만듬)
+** tensorboard: tensorboard 파일?을 저장
+	- estimator 
+	- angle_estimator
+	- taptime_estimator 
+	(각자 다른 q-network이면, 따로 저장되도록 함)
+
+** experience_gathering-test: test시 생기는 experience 따로 모음?? 
+
+***** 두 모델(single, parallel)이 각자 사용
+** checkpoints-oneNN
+** checkpoints_parNN
