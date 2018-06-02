@@ -43,6 +43,16 @@ def make_epsilon_greedy_policy(estimator, nA):
         return angle_A, taptime_A
     return policy_fn
 
+def make_epsilon_greedy_policy_parNN(estimator, nA):
+
+    def policy_fn(sess, observation, epsilon):
+        A = np.ones(nA, dtype=float) * epsilon / nA # action 수 만큼의 길이
+        q_values = estimator.predict(sess, np.expand_dims(observation, 0))[0]
+        best_action = np.argmax(q_values)
+        A[best_action] += (1.0 - epsilon)
+        return A
+    return policy_fn
+
 def get_feature_4096(model, img_path, need_crop = True, need_resize = True):
     '''
     vgg16 = VGG16(weights= 'imagenet', include_top= False) # output: 7*7*512
@@ -244,6 +254,41 @@ def pretrain(replay_memory, valid_angles, valid_taptimes, estimator, target_esti
     # return angle_loss, taptime_loss
     return loss
 
+def pretrain_parNN(replay_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size=6, discount_factor=0.99):
+    samples = random.sample(replay_memory, batch_size)
+    states_batch, action_batch, reward_batch, next_states_batch, game_state_batch = map(np.array, zip(*samples))
+    reward_batch = np.clip(reward_batch/10000, 0, 6)
+    # (1,1,4096) (1,2) (1,) (1,)
+
+    done_batch = np.array([1 if (game_state =='LOST' or 'WON') else 0 for game_state in game_state_batch])
+
+    # angle_action_batch = np.array([action_batch[i][0] for i in range(batch_size)])
+    # taptime_action_batch = np.array([action_batch[i][1] for i in range(batch_size)])
+
+    angle_action_batch_idx = np.array([valid_angles.index(action_batch[i][0]) for i in range(batch_size)])
+    taptime_action_batch_idx = np.array([valid_taptimes.index(action_batch[i][1]) for i in range(batch_size)])
+
+    # 학습에 넣을 target reward 계산
+    angle_q_values_next = angle_estimator.predict(sess, next_states_batch)
+    best_angle_actions = np.argmax(angle_q_values_next, axis=1)
+    taptime_q_values_next = taptime_estimator.predict(sess, next_states_batch)
+    best_taptime_actions = np.argmax(taptime_q_values_next, axis=1)
+
+    angle_q_values_next_target = angle_target_estimator.predict(sess, next_states_batch)
+    taptime_q_values_next_target = taptime_target_estimator.predict(sess, next_states_batch)
+
+    angle_targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * \
+        discount_factor * angle_q_values_next_target[np.arange(batch_size), best_angle_actions]
+
+    taptime_targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * \
+        discount_factor * taptime_q_values_next_target[np.arange(batch_size), best_taptime_actions]
+
+    # Perform gradient descent update
+    states_batch = np.array(states_batch)
+    angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch_idx, angle_targets_batch)
+    taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
+    return angle_loss, taptime_loss            
+
 def init_oneshot_onekill(exp_path, current_dir, model_name):
     import os, glob, pickle
     replay_memory = []
@@ -305,3 +350,44 @@ def init_twoshot_onekill(exp_path, current_dir, model_name):
         replay_memory.append([state, action, reward, next_state, 'PLAYING'])
 
     return replay_memory, dir_list, png_list
+
+def get_valid_angles():
+    import csv
+    f = open('experience_angles.csv', 'r')
+    rdr = csv.reader(f)
+    angles = []
+    for line in rdr:
+        angles.append(int(line[0]))
+    f.close()
+    angles = list(set(angles))
+    return angles
+
+# experience_gathering으로부터 각도셋(experience_angles.csv)으로 pickle 생성
+if __name__ == '__main__':
+    import inspect, os, csv, pickle
+    # from multiprocessing import Pool
+    from tensorflow.python.keras.applications.vgg16 import VGG16
+
+    f = open('experience_angles.csv', 'r')
+    rdr = csv.reader(f)
+    angles = []
+    for line in rdr:
+        angles.append(int(line[0]))
+    f.close()
+    angles = list(set(angles))
+
+    current_path = inspect.getfile(inspect.currentframe())
+    current_dir = os.path.dirname(os.path.abspath(current_path))
+    EXP_PATH=os.path.join(current_dir,"experiences_gathering")
+
+    vgg16 = VGG16(weights= 'imagenet')
+
+    print('Populating replay memory...')
+    # pool = Pool(processes=3)
+    # pool.map(init_replaymemory_WithAngleSet, angles)
+    
+    replay_memory = (angles, EXP_PATH, current_dir, vgg16)
+
+    with open(os.path.join(EXP_PATH, 'replay_memoryAll'), 'wb') as f:
+        pickle.dump(replay_memory, f)
+    print('Done')

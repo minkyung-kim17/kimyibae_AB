@@ -10,14 +10,16 @@ from tensorflow.python.keras.applications.vgg16 import VGG16
 # from comm import *
 import comm
 import wrapper_python as wrap
-import q_network
+import q_network_parallelNN as q_network
+# import q_network
 import dqn_utils
 
 import pdb
 
 # log 설정 ...
 dqn_logger = logging.getLogger("dqn_logger")
-dqn_logger.setLevel(logging.DEBUG) # Debug < Info < Warning < Error < Critical
+# Debug < Info < Warning < Error < Critical
+dqn_logger.setLevel(logging.DEBUG)
 dqn_logger.addHandler(logging.StreamHandler())
 dqn_logger.addHandler(logging.FileHandler("dqn_logger.log"))
 
@@ -39,14 +41,17 @@ if not os.path.exists(SCR_PATH):
 if not os.path.exists(SUMM_PATH):
 	os.mkdir(SUMM_PATH)
 
-checkpoint_dir = os.path.join(current_dir, "checkpoints-oneNN")
+checkpoint_dir = os.path.join(current_dir, "checkpoints-parNN")
 checkpoint_path = os.path.join(checkpoint_dir, "model") # checkpoint file path
 
 if not os.path.exists(checkpoint_dir):
 	os.makedirs(checkpoint_dir)
 
+# episode_prefix	= '%s/startAt_%s'%(EXP_PATH, time.strftime("%Y%m%d_%H%M"))
 run_start_dir = os.path.join(EXP_PATH, "startAt_%s"%time.strftime("%Y%m%d_%H%M"))
 
+# while True:
+# 	pass
 
 ####################################################################################
 print('Gazua Angry Bird!') #########################################################
@@ -54,6 +59,7 @@ print('Gazua Angry Bird!') #####################################################
 
 update_target_estimator_every = 10
 
+#################################
 ##### Initialize game environment
 # connect to Server
 print('Initialize connection to ABServer')
@@ -66,35 +72,42 @@ _,_,_ = comm.comm_configure(s, 1003)
 wrapper = wrap.WrapperPython('127.0.0.1')
 
 # initialize tensorflow session
-# tf.reset_default_graph() # 주피터 노트북과 같이 컨텍스트가 유지되는 경우에는 graph reset을 해 줘야 한다고 함
-						   # 일반 파이썬은 괜찮음
+# tf.reset_default_graph() # ??
+# sess = tf.Session()
 
 # initialize feature extraction
 vgg16 = VGG16(weights= 'imagenet')
 
-# set the action sets # 앗 여기도 csv 파일로 읽어서 만들면 편할 듯.. 나중에 각도 추가 하거나 뭐 할때
-# valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
+# set the action sets
 valid_angles = dqn_utils.get_valid_angles()
+# [8, 10, 11, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 30, 31, 34, 35, 36, 41, 43, 46, 52, 55, 56, 58, 61, 63, 65, 67, 70, 72, 75]
+# valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
 valid_taptimes = list(range(500, 2501, 100))  # 500부터 2500까지 100씩 증가
 
 # Create a global step variable
 global_step = tf.Variable(0, name='global_step', trainable=False)
 
-# initialize Q-network
-estimator = q_network.DQN_Estimator(scope="estimator", angle_output_size=len(valid_angles), taptime_output_size=len(valid_taptimes), summaries_dir=SUMM_PATH)
-target_estimator = q_network.DQN_Estimator(scope="target_estimator", angle_output_size=len(valid_angles), taptime_output_size=len(valid_taptimes))
+angle_estimator = q_network.DQN_Estimator(scope="angle_estimator", output_size=len(valid_angles), summaries_dir=SUMM_PATH)
+angle_target_estimator = q_network.DQN_Estimator(scope="angle_target_estimator", output_size=len(valid_angles))
+taptime_estimator = q_network.DQN_Estimator(scope="taptime_estimator", output_size=len(valid_taptimes), summaries_dir=SUMM_PATH)
+taptime_target_estimator = q_network.DQN_Estimator(scope="taptime_target_estimator", output_size=len(valid_taptimes))
+# angle_estimator, angle_target_estimator = DQN_Estimator(obs_size, sess, fe, sc_parser, "angle", valid_angles) # 수정 필요
+# taptime_estimator, taptime_target_estimator = DQN_Estimator(obs_size, sess, fe, sc_parser, "taptime", valid_taptimes) # 수정 필요
 
 # Keeps track of useful statistics
 EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
+
+
 stats = EpisodeStats( # level별 episode_length랑, episode_reward를 저장해 둘 수 있는 list
         episode_lengths=[[] for i in range(21)],
         episode_rewards=[[] for i in range(21)])
 
+# pdb.set_trace()
 
-##### Open tensorflow session
 with tf.Session() as sess:
-	sess.run(tf.global_variables_initializer()) 
+	sess.run(tf.global_variables_initializer())
 
+	# pdb.set_trace()
 	saver = tf.train.Saver()
 
 	latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir) # path를 반환
@@ -102,79 +115,96 @@ with tf.Session() as sess:
 		print("Loading model checkpoint {}...\n".format(latest_checkpoint))
 		saver.restore(sess, latest_checkpoint)
 
-	total_t = sess.run(tf.train.get_global_step()) 
-	# 처음에 안됐었던 이유는, global_step이란 tensor 변수를 안만들어서임
+	total_t = sess.run(tf.train.get_global_step()) # 처음에 안됐었던 이유는, global_step이란 tensor 변수를 안만들어서임
 
-	## user parameter
+	##
 	epsilon_start = 1.0
 	epsilon_end = 0.1
 	epsilon_decay_steps = 500000
 	epsilons = np.linspace(epsilon_start, epsilon_end, epsilon_decay_steps)
 
-	policy= dqn_utils.make_epsilon_greedy_policy(
-	        estimator,
-	        [len(valid_angles), len(valid_taptimes)])
+	policy_angle = dqn_utils.make_epsilon_greedy_policy_parNN(
+	        angle_estimator,
+	        len(valid_angles))
 
+	policy_taptime = dqn_utils.make_epsilon_greedy_policy_parNN(
+	        taptime_estimator,
+	        len(valid_taptimes))
 
 	########################################
 	##### Populating replay memory (size: N)
 	# 원래는 랜덤하게 N번의 shot을 해서 replay_memory를 채워야 하지만...
 	# 각 레벨별로, 0도부터 90도까지 쏜 데이터를 replay_memory로 함.
+	# pre_train을 넣어서, 이 replay_memory로 학습을 한 weight를 가져와서 시작하는 것도 고려.
 	batch_size = 6
 	discount_factor = 0.99
 	Transition = namedtuple("Transition", ["state", "action", "reward", "next_state", "game_state"])
 	replay_memory_size = 500000
 	print('Populating replay memory...')
-	# replay_memory = [] # pretrain_memory가 사실 replay_memory가 되는게 아닌가? 
+	# replay_memory = []
 	# with open(os.path.join(EXP_PATH, 'pretrain_memory_5'), 'rb') as f:
 	with open(os.path.join(EXP_PATH, 'replay_memoryAll'), 'rb') as f:
-	
 		# pretrain_memory = pickle.load(f)
 		replay_memory = pickle.load(f)
+		# pdb.set_trace()
 
+
+	#####################
+	##### Checkpoint load
 	# pretrain_memory = dqn_utils.init_replaymemory(5, EXP_PATH, current_dir, vgg16)
 	# with open(os.path.join(EXP_PATH, 'pretrain_memory_5'), 'wb') as f:
 	# 	pickle.dump(pretrain_memory, f)
 	# with open(os.path.join(EXP_PATH, 'pretrain_memory_5'), 'rb') as f:
-		# pretrain_memory = pickle.load(f)
-	
+	# 	# pretrain_memory = pickle.load(f)
+	# 	replay_memory = pickle.load(f)
+	# def run_pretrain():
+
 	# while True:
-	# # pdb.set_trace()
-	# 	# angle_loss, taptime_loss = dqn_utils.pretrain(pretrain_memory, valid_angles, valid_taptimes, estimator, target_estimator, sess, batch_size, discount_factor)
-	# 	loss = dqn_utils.pretrain(pretrain_memory, valid_angles, valid_taptimes, estimator, target_estimator, sess, batch_size, discount_factor)
+	# 	angle_loss, taptime_loss = dqn_utils.pretrain(pretrain_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor)
 	# 	saver.save(sess, checkpoint_path)
 	# 	total_t += 1
 	# 	if total_t % update_target_estimator_every == 0:
-	# 		dqn_utils.copy_model_parameters(sess, estimator, target_estimator)
-	# 		# dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
-	# 		# print("total_t:", total_t, "angle_loss:", angle_loss, "taptime_loss;", taptime_loss)
-	# 		print("total_t:", total_t, "loss:", loss)
+	# 		dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
+	# 		dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
+	# 		print("total_t:", total_t, "angle_loss:", angle_loss, "taptime_loss;", taptime_loss)
 
-	def local_train(replay_memory, valid_angles, valid_taptimes, estimator, 
-		target_estimator, sess, batch_size, discount_factor, total_t, update_target_estimator_every, saver, checkpoint_path):
+	def local_train(replay_memory, valid_angles, valid_taptimes,  
+			angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor, 
+			total_t, update_target_estimator_every, saver, checkpoint_path):
 		while True:
-			loss = dqn_utils.pretrain(replay_memory, valid_angles, valid_taptimes, estimator, target_estimator, sess, batch_size, discount_factor)
+			angle_loss, taptime_loss = dqn_utils.pretrain_parNN(replay_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, 
+				angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor)
 			total_t += 1 # 이 코드가 실행될 때, 불러온 checkpoint에서부터 계속 더하기 1을 해나감
 			# pdb.set_trace()
 			# total_t = sess.run(tf.train.get_global_step()) # 이렇게 total_t를 계산해야 main thread랑 sync가 맞을 것 같은데... 왜 자꾸 에러ㄷㄷ
 			if total_t % update_target_estimator_every == 0:
 				saver.save(sess, checkpoint_path)
-				dqn_utils.copy_model_parameters(sess, estimator, target_estimator)
+				dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
+				dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
 			if total_t % (update_target_estimator_every*10) == 0:
-				print("local_train || total_t:", total_t, "loss:", loss)
+				print("local_train || total_t:", total_t, "angle_loss:", angle_loss, "taptime_loss:", taptime_loss)
 
 	threads= []
 	import threading
 	num_threads=1
 	for i in range(num_threads):
-		t=threading.Thread(target=local_train, args=(replay_memory, valid_angles, valid_taptimes, estimator, 
-			target_estimator, sess, batch_size, discount_factor, total_t, update_target_estimator_every, saver, checkpoint_path))
+		t=threading.Thread(target=local_train, args=(replay_memory, valid_angles, valid_taptimes,  
+			angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor, 
+			total_t, update_target_estimator_every, saver, checkpoint_path))
 		threads.append(t)
 		t.start()
 
+	# threads= []
+	# import threading
+	# num_threads=1
+	# for i in range(num_threads):
+	# 	t=threading.Thread(target=run_pretrain)
+	# 	threads.append(t)
+	# 	t.start()
+
 	# replay memory로 pre_train한 network를 쓴다면, 여기서 load
-	## --> 강화학습에서 이렇게 하면 안됨. 미리 replay memory를 만드는 건 ok지만, 
-	## 게임을 해나가면서 training을 해야 함... 
+
+	# pdb.set_trace()
 
 	####################################################################################
 	print('Start Learning!') ### 게임을 하면서, 학습을 하면서, policy를 업데이트 ##########
@@ -183,7 +213,9 @@ with tf.Session() as sess:
 	i_episode = 0 # 전체 episode수
 	i_episodes = [0]*21 # 각 레벨별 episode수
 
-	dqn_utils.copy_model_parameters(sess, estimator, target_estimator)
+	# loss = None # 왠지 단순히 print하려고 하는것 같음
+	dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
+	dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
 
 	while True:
 
@@ -224,7 +256,6 @@ with tf.Session() as sess:
 			# resater random level
 			comm.comm_load_level(s, np.random.randint(1,22), silent=False)
 
-
 		elif game_state=='LOST':
 			print ("########################################################")
 			print ("Lost state")
@@ -242,7 +273,7 @@ with tf.Session() as sess:
 				os.mkdir(episode_dir)
 
 			# 새 에피소드 시작할 때마다 checkpoint 새로 생성
-			saver.save(sess, checkpoint_path) # thread안에서도 학습할때 checkpoint 저장하고 있음...
+			saver.save(sess, checkpoint_path)
 			current_level = comm.comm_get_current_level(s)
 
 			i_episodes[current_level-1] += 1
@@ -269,7 +300,7 @@ with tf.Session() as sess:
 				state_raw_img = comm.comm_do_screenshot(s, screenshot_path)
 				save_path = screenshot_path+"_seg.png"
 				state_img = wrapper.save_seg(screenshot_path, save_path)
-				state = dqn_utils.get_feature_4096(model=vgg16, img_path=save_path) 
+				state = dqn_utils.get_feature_4096(model=vgg16, img_path=save_path)
 				# pdb.set_trace()
 
 				print('Choose action from given Q network model')
@@ -278,19 +309,22 @@ with tf.Session() as sess:
 				epsilon = epsilons[min(total_t, epsilon_decay_steps-1)]
 
 				# Add epsilon to Tensorboard
-				episode_summary = tf.Summary() # 수정: 샷을 할때마다 episode_summary 객체를 계속 새로 만드는 것인가...?
+				episode_summary = tf.Summary() # 수정:
 				episode_summary.value.add(simple_value=epsilon, tag="epsilon")
-				estimator.summary_writer.add_summary(episode_summary, total_t)
+				angle_estimator.summary_writer.add_summary(episode_summary, total_t)
+				taptime_estimator.summary_writer.add_summary(episode_summary, total_t)
 
 				# Update the target estimator
 				if total_t % update_target_estimator_every == 0:
-					dqn_utils.copy_model_parameters(sess, estimator, target_estimator)
+					dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
+					dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
 					# print("\nCopied model parameters to target network.")
 
 				# pdb.set_trace()
 
-				# Take a step (현재 policy(현재 Q-network)로 다음 action을 정함)
-				angle_action_probs, taptime_action_probs = policy(sess, state, epsilon)
+				# Take a step (현재 policy로 다음 action을 정함)
+				angle_action_probs = policy_angle(sess, state, epsilon)
+				taptime_action_probs = policy_taptime(sess, state, epsilon)
 
 				angle_action_idx = np.random.choice(np.arange(len(angle_action_probs)), p=angle_action_probs)
 				taptime_action_idx = np.random.choice(np.arange(len(taptime_action_probs)), p=taptime_action_probs)
@@ -346,12 +380,9 @@ with tf.Session() as sess:
 					stats.episode_rewards[current_level-1][-1] += (reward)
 					stats.episode_lengths[current_level-1][-1] = (t+1)
 
-				# Q-network update with minibatch
-				# 게임 중에도 minibatch로 q network weight update ? 필요?
-				## 어차피 이 게임의 experience가 들어가도 다시 random으로 minibatch sample을 고르는데...?
-				## 그리고 이 짓을 thread가 하는데? 
+				# minibatch로 q network weight update
 				if len(replay_memory) > batch_size:
-					loss = dqn_utils.pretrain(replay_memory, valid_angles, valid_taptimes, estimator, target_estimator, sess, batch_size, discount_factor)
+					angle_loss, taptime_loss = dqn_utils.pretrain_parNN(replay_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor)
 					# samples = random.sample(replay_memory, batch_size)
 					# states_batch, action_batch, reward_batch, next_states_batch, game_state_batch = map(np.array, zip(*samples))
 					# reward_batch = np.clip(reward_batch/10000, 0, 6)
@@ -386,7 +417,7 @@ with tf.Session() as sess:
 					# angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch_idx, angle_targets_batch)
 					# taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
 
-					print('Learning done! (loss:', loss, ')')
+					print('Learning done! (angle_loss:', angle_loss, 'taptime_loss:', taptime_loss, ')')
 
 				# state 판별:
 				# if game_state가 playing이 아니면 :
@@ -394,21 +425,24 @@ with tf.Session() as sess:
 					break
 
 				# state = next_state
-				# total_t += 1
 				total_t = sess.run(tf.train.get_global_step()) # thread랑 같이 써서... 더하기를 하지말고 계속 받아오는 걸로...
+				# total_t += 1
 
 			print('\nOne episode is done')
 
-			 # Add summaries to tensorboard
+			# Add summaries to tensorboard
+			# episode_summary = tf.Summary() # 위에서 선언되어있었음
 			episode_summary.value.add(simple_value=stats.episode_rewards[current_level-1][-1], node_name="episode_reward_Level_%d"%(current_level), tag="episode_reward_Level_%d"%(current_level))
 			episode_summary.value.add(simple_value=stats.episode_lengths[current_level-1][-1], node_name="episode_length_Level_%d"%(current_level), tag="episode_length_Level_%d"%(current_level))
 
-			estimator.summary_writer.add_summary(episode_summary, total_t)
-			estimator.summary_writer.flush()
+			angle_estimator.summary_writer.add_summary(episode_summary, total_t)
+			angle_estimator.summary_writer.flush()
+			taptime_estimator.summary_writer.add_summary(episode_summary, total_t)
+			taptime_estimator.summary_writer.flush()
 
 		print()
 
-	# tensorboard 실행 방법: cmd 명령으로 실행 (!!!!!! tensorflow가 있는 환경에서 !!!!!)
+	# tensorboard 실행 방법: cmd 명령으로 실행 (tensorflow가 있는 환경에서)
 	# tensorboard --logdir="C:\Users\mkkim\Github\kimyibae_AB\python_client\tensorboard\summaries_angle_estimator"
 	# 그 이후 나온 url 실행 (ex. http://DESKTOP-5KPGCLS:6006)
 

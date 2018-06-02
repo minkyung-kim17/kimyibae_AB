@@ -2,3 +2,5 @@
 **/experiences/
 *.class
 *.pyc
+python_client/pickle_files/replay_memoryAll
+python_client/pickle_files/pretrain_memory_5
