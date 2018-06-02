@@ -30,8 +30,8 @@ SCR_PATH=os.path.join(current_dir,"screenshots")
 
 if not os.path.exists(EXP_PATH):
 			os.mkdir(EXP_PATH)
-# if not os.path.exists(SCR_PATH):
-			# os.mkdir(SCR_PATH)
+if not os.path.exists(SCR_PATH):
+			os.mkdir(SCR_PATH)
 
 checkpoint_dir = os.path.join(current_dir, "checkpoints_gathering")
 checkpoint_path = os.path.join(checkpoint_dir, "model") # checkpoint file path

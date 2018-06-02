@@ -7,15 +7,18 @@ import numpy as np
 from tensorflow.python.keras.applications.vgg16 import VGG16
 
 # sys.path.append('../')
-# from comm import *
 import comm
 import wrapper_python as wrap
 import q_network
+import q_network_parallelNN
 import dqn_utils
 
 import pdb
 
-# log 설정 ... # test라 일단 logger 뺌
+# model_type = 0
+model_type = int(input("Write your model number (oneNN(1) or parNN(2)):"))
+
+# log 설정 ... # test라 일단 logger 뺌 ...?
 # dqn_logger = logging.getLogger("dqn_logger")
 # dqn_logger.setLevel(logging.DEBUG) # Debug < Info < Warning < Error < Critical
 # dqn_logger.addHandler(logging.StreamHandler())
@@ -24,23 +27,29 @@ import pdb
 # path 설정 ...
 current_path = inspect.getfile(inspect.currentframe())
 current_dir = os.path.dirname(os.path.abspath(current_path))
-EXP_PATH=os.path.join(current_dir,"experiences_gathering-test") 
+EXP_PATH=os.path.join(current_dir,"experiences-test") 
 SCR_PATH=os.path.join(current_dir,"screenshots")
-SUMM_PATH=os.path.join(current_dir, "tensorboard-test") # tf.summary dir
+# SUMM_PATH=os.path.join(current_dir, "tensorboard-test") # test에서 tensorboard를 기록해야 하는가? 
 
 if not os.path.exists(EXP_PATH):
 	os.mkdir(EXP_PATH)
 if not os.path.exists(SCR_PATH):
 	os.mkdir(SCR_PATH)
-if not os.path.exists(SUMM_PATH):
-	os.mkdir(SUMM_PATH)
+# if not os.path.exists(SUMM_PATH):
+	# os.mkdir(SUMM_PATH)
 
-checkpoint_dir = os.path.join(current_dir, "checkpoints") # saver.restore 할때는 여기 
-# checkpoint_path = os.path.join(checkpoint_dir, "model") # checkpoint file path, saver.save 할때는 여기
-# 우선 test에서 학습을 안하도록 했음... 
+if model_type == 1:
+	checkpoint_dir = os.path.join(current_dir, "checkpoints-oneNN") # saver.restore 할때는 여기 
+	# checkpoint_path = os.path.join(checkpoint_dir, "model") # checkpoint file path, saver.save 할때는 여기
+	# 우선 test에서는 학습을 안하도록 했음... 
+elif model_type == 2:
+	checkpoint_dir = os.path.join(current_dir, "checkpoints-parNN") # saver.restore 할때는 여기
 
 if not os.path.exists(checkpoint_dir):
-	os.makedirs(checkpoint_dir)
+	print("There is no checkpoint. Please learn first")
+	sys.exit()
+	
+	# os.makedirs(checkpoint_dir)
 
 run_start_dir = os.path.join(EXP_PATH, "startAt_%s"%time.strftime("%Y%m%d_%H%M"))
 
@@ -48,9 +57,8 @@ run_start_dir = os.path.join(EXP_PATH, "startAt_%s"%time.strftime("%Y%m%d_%H%M")
 print('Gazua Angry Bird!') #########################################################
 ####################################################################################
 
-update_target_estimator_every = 10 # test라 학습을 안하면, 여기도 필요없지 
+# update_target_estimator_every = 10 # test라 학습을 안하면, 여기도 필요없지 
 
-#################################
 ##### Initialize game environment
 # connect to Server
 print('Initialize connection to ABServer')
@@ -63,22 +71,28 @@ _,_,_ = comm.comm_configure(s, 1003)
 wrapper = wrap.WrapperPython('127.0.0.1')
 
 # initialize tensorflow session
-# tf.reset_default_graph() # ??
+# tf.reset_default_graph() 
 
 # initialize feature extraction
 vgg16 = VGG16(weights= 'imagenet')
 
 # set the action sets
-valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
+# valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
+valid_angles = dqn_utils.get_valid_angles()
 valid_taptimes = list(range(500, 2501, 100))  # 500부터 2500까지 100씩 증가
 
 # Create a global step variable # 일단 시작은 0이고, checkpoint를 불러오면 저장된 global_step이 들어오는건가...
 global_step = tf.Variable(0, name='global_step', trainable=False)
 
-angle_estimator = q_network.DQN_Estimator(scope="angle_estimator", output_size=len(valid_angles), summaries_dir=SUMM_PATH)
-angle_target_estimator = q_network.DQN_Estimator(scope="angle_target_estimator", output_size=len(valid_angles))
-taptime_estimator = q_network.DQN_Estimator(scope="taptime_estimator", output_size=len(valid_taptimes), summaries_dir=SUMM_PATH)
-taptime_target_estimator = q_network.DQN_Estimator(scope="taptime_target_estimator", output_size=len(valid_taptimes))
+# initialize Q-network
+if model_type == 1:
+	estimator = q_network.DQN_Estimator(scope="estimator", angle_output_size=len(valid_angles), taptime_output_size=len(valid_taptimes))
+	target_estimator = q_network.DQN_Estimator(scope="target_estimator", angle_output_size=len(valid_angles), taptime_output_size=len(valid_taptimes))
+elif model_type == 2:
+	angle_estimator = q_network_parallelNN.DQN_Estimator(scope="angle_estimator", output_size=len(valid_angles))
+	angle_target_estimator = q_network_parallelNN.DQN_Estimator(scope="angle_target_estimator", output_size=len(valid_angles))
+	taptime_estimator = q_network_parallelNN.DQN_Estimator(scope="taptime_estimator", output_size=len(valid_taptimes))
+	taptime_target_estimator = q_network_parallelNN.DQN_Estimator(scope="taptime_target_estimator", output_size=len(valid_taptimes))
 
 # Keeps track of useful statistics
 EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
@@ -86,7 +100,7 @@ stats = EpisodeStats( # level별 episode_length랑, episode_reward를 저장해 
         episode_lengths=[[] for i in range(21)],
         episode_rewards=[[] for i in range(21)])
 
-# initialize and open session
+##### Open tensorflow session
 with tf.Session() as sess:
 	sess.run(tf.global_variables_initializer())
 
@@ -99,10 +113,11 @@ with tf.Session() as sess:
 		print("Loading model checkpoint {}...".format(latest_checkpoint))
 		saver.restore(sess, latest_checkpoint)
 		
-	total_t = sess.run(tf.train.get_global_step()) # 처음에 안됐었던 이유는, global_step이란 tensor 변수를 안만들어서임
+	total_t = sess.run(tf.train.get_global_step()) 
+	# 처음에 안됐었던 이유는, global_step이란 tensor 변수를 안만들어서임
 	print("This checkpoint has been made after {} shots experience".format(total_t))
 
-	epsilon = 0.2
+	epsilon = 0.1 # 0으로 해본다 좀 배워라 좀
 	print("Epsilon used in this test is {}".format(epsilon))
 
 	## test할때는... epsilon이 있어야 하는가?... 아주 학습이 잘 된 경우면 greedy로 뽑으면 되니까 epsilon=0? 혹시 몰라서 0.1로 아래 playing에서 줌
@@ -111,13 +126,19 @@ with tf.Session() as sess:
 	# epsilon_decay_steps = 500000
 	# epsilons = np.linspace(epsilon_start, epsilon_end, epsilon_decay_steps)
 
-	policy_angle = dqn_utils.make_epsilon_greedy_policy(
-	        angle_estimator,
-	        len(valid_angles))
+	if model_type == 1:
+		policy= dqn_utils.make_epsilon_greedy_policy(
+	        estimator,
+	        [len(valid_angles), len(valid_taptimes)])
 
-	policy_taptime = dqn_utils.make_epsilon_greedy_policy(
-	        taptime_estimator,
-	        len(valid_taptimes))
+	elif model_type == 2:
+		policy_angle = dqn_utils.make_epsilon_greedy_policy_parNN(
+		        angle_estimator,
+		        len(valid_angles))
+
+		policy_taptime = dqn_utils.make_epsilon_greedy_policy_parNN(
+		        taptime_estimator,
+		        len(valid_taptimes))
 
 	########################################
 	##### Populating replay memory (size: N)
@@ -129,9 +150,9 @@ with tf.Session() as sess:
 	batch_size = 6
 	discount_factor = 0.99
 	Transition = namedtuple("Transition", ["state", "action", "reward", "next_state", "game_state"])
-	replay_memory_size = 500000
+	# replay_memory_size = 500000
 	# print('Populating replay memory...')
-	replay_memory = []
+	# replay_memory = []
 	# replay_memory = np.load('').tolist()
 
 	#####################
@@ -279,17 +300,20 @@ with tf.Session() as sess:
 				# taptime_estimator.summary_writer.add_summary(episode_summary, total_t)
 
 				# Update the target estimator
-				if total_t % update_target_estimator_every == 0: # 여기도 test에서는 필요 없고
-					pass # 수정: 여기 다시 만들어야 함 오류 팡팡팡
+				# if total_t % update_target_estimator_every == 0: # 여기도 test에서는 필요 없고
+					# pass # 수정: 여기 다시 만들어야 함 오류 팡팡팡
 					# dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
 					# dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
 					# print("\nCopied model parameters to target network.")
 
 				# pdb.set_trace()
 
-				# Take a step (현재 policy로 다음 action을 정하네)
-				angle_action_probs = policy_angle(sess, state, epsilon)
-				taptime_action_probs = policy_taptime(sess, state, epsilon)
+				# Take a step 
+				if model_type == 1:
+					angle_action_probs, taptime_action_probs = policy(sess, state, epsilon)
+				elif model_type == 2:
+					angle_action_probs = policy_angle(sess, state, epsilon)
+					taptime_action_probs = policy_taptime(sess, state, epsilon)
 
 				angle_action_idx = np.random.choice(np.arange(len(angle_action_probs)), p=angle_action_probs)
 				taptime_action_idx = np.random.choice(np.arange(len(taptime_action_probs)), p=taptime_action_probs)
@@ -325,11 +349,11 @@ with tf.Session() as sess:
 				next_state = dqn_utils.get_feature_4096(model=vgg16, img_path=save_path)
 
 				# If our replay memory is full, pop the first element
-				if len(replay_memory) == replay_memory_size:
-				    replay_memory.pop(0)
+				# if len(replay_memory) == replay_memory_size:
+				    # replay_memory.pop(0)
 
 				# Save transition to replay memory
-				replay_memory.append(Transition(state, action, reward, next_state, game_state))
+				# replay_memory.append(Transition(state, action, reward, next_state, game_state))
 
 				# Update statistics
 				if t == 0:
@@ -394,20 +418,18 @@ with tf.Session() as sess:
 			print('\nThis level is done')
 
 			 # Add summaries to tensorboard
-			episode_summary = tf.Summary()
-			# 아래에서 node_name을 여러개 만들어서, 조건문?으로 각 level별 stat을 찍으면 될것 같음!
-			# pdb.set_trace()
-			# for i in range(21):
-				# episode_summary.value.add(simple_value=stats.episode_rewards[i][-1], node_name="episode_reward_Level_%d"%(i+1), tag="episode_reward_Level_%d"%(i+1))
-				# episode_summary.value.add(simple_value=stats.episode_lengths[i][-1], node_name="episode_length_Level_%d"%(i+1), tag="episode_length_Level_%d"%(i+1))
 
-			episode_summary.value.add(simple_value=stats.episode_rewards[current_level-1][-1], node_name="episode_reward_Level_%d"%(current_level), tag="episode_reward_Level_%d"%(current_level))
-			episode_summary.value.add(simple_value=stats.episode_lengths[current_level-1][-1], node_name="episode_length_Level_%d"%(current_level), tag="episode_length_Level_%d"%(current_level))
+			# episode_summary.value.add(simple_value=stats.episode_rewards[current_level-1][-1], node_name="episode_reward_Level_%d"%(current_level), tag="episode_reward_Level_%d"%(current_level))
+			# episode_summary.value.add(simple_value=stats.episode_lengths[current_level-1][-1], node_name="episode_length_Level_%d"%(current_level), tag="episode_length_Level_%d"%(current_level))
 
-			angle_estimator.summary_writer.add_summary(episode_summary, total_t)
-			angle_estimator.summary_writer.flush()
-			taptime_estimator.summary_writer.add_summary(episode_summary, total_t)
-			taptime_estimator.summary_writer.flush()
+			# if model_type == 1:
+			# 	estimator.summary_writer.add_summary(episode_summary, total_t)
+			# 	estimator.summary_writer.flush()
+			# elif model_type == 2:
+			# 	angle_estimator.summary_writer.add_summary(episode_summary, total_t)
+			# 	angle_estimator.summary_writer.flush()
+			# 	taptime_estimator.summary_writer.add_summary(episode_summary, total_t)
+			# 	taptime_estimator.summary_writer.flush()
 
 		print()
 
