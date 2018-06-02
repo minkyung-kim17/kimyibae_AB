@@ -1,5 +1,7 @@
 **/experiences_gathering/
 **/experiences/
+**/experiences_/
+**/screenshots/
 *.class
 *.pyc
 python_client/pickle_files/replay_memoryAll

@@ -137,11 +137,11 @@ with tf.Session() as sess:
 	print('Start Learning!') ### 게임을 하면서, 학습을 하면서, policy를 업데이트 ##########
 	####################################################################################
 
-	load_level = 1
+	load_level = 2
 	angle_action_idx = 0
 	angle_action = valid_angles[angle_action_idx]
 	taptime_action_idx = 0
-	taptime_action = valid_taptimess[angle_action_idx]
+	taptime_action = valid_taptimes[angle_action_idx]
 	i_episode=0
 	loss = None # 수정: 여기서 하는게 맞나... Level_selection안에 넣어놨었는데, 여기를 들어가지 않고 실행되는 경우도 있었음
 	while True:
@@ -181,8 +181,8 @@ with tf.Session() as sess:
 				comm.comm_restart_level(s)
 			elif angle_action_idx == len(valid_angles)-1:
 				angle_action_idx = 0
-				if comm.comm_get_current_level(s)>1:
-					load_level -=1
+				if comm.comm_get_current_level(s)<21:
+					load_level +=1
 					comm.comm_load_level(s, load_level)
 				else:
 					break
@@ -197,8 +197,8 @@ with tf.Session() as sess:
 				comm.comm_restart_level(s)
 			elif angle_action_idx == len(valid_angles)-1:
 				angle_action_idx = 0
-				if comm.comm_get_current_level(s)>1:
-					load_level -=1
+				if comm.comm_get_current_level(s)<21:
+					load_level +=1
 					comm.comm_load_level(s, load_level)
 				else:
 					break
@@ -282,8 +282,10 @@ with tf.Session() as sess:
 					angle_action = valid_angles[angle_action_idx]
 				else:
 					# 0 이상의 index를 추출, 0보다 작으면 0
-					temp_index = max(int(np.random.normal(angle_action, 5)),0)
-					angle_action = valid_angles[min(temp_index, len(valid_angles)-1)]
+					# temp_index = max(int(np.random.normal(angle_action_idx, 5)),0)
+					# angle_action = valid_angles[min(temp_index, len(valid_angles)-1)]
+					temp_index = int(np.random.normal(angle_action_idx, 5))%len(valid_angles)
+					angle_action = valid_angles[temp_index]
 					# temp_index = np.random.choice(np.arange(len(angle_action_probs)), p=angle_action_probs)
 					# angle_action = valid_angles[temp_index]
 				taptime_action = np.random.choice(valid_taptimes)
