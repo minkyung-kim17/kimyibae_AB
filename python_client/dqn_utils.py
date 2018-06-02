@@ -219,10 +219,6 @@ def init_replaymemory(angle_step, exp_path, current_dir, model_name):
 def init_replaymemory_WithAngleSet(angle_set, exp_path, current_dir, model_name):
     import os, glob, pickle
     replay_memory = []
-    # if angle_step>1:
-    #     angles = [i for i in range(5,90) if (i%angle_step==0)]
-    # else:
-    #     angles = range(5,86)
     for angle in angle_set:
         print(angle)
         for filename in glob.iglob("%s/*/*/s_?_%d_*_seg.png"%(exp_path, angle)):
@@ -319,7 +315,7 @@ def pretrain_parNN(replay_memory, valid_angles, valid_taptimes, angle_estimator,
     states_batch = np.array(states_batch)
     angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch_idx, angle_targets_batch)
     taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
-    return angle_loss, taptime_loss            
+    return angle_loss, taptime_loss
 
 def init_oneshot_onekill(exp_path, current_dir, model_name):
     import os, glob, pickle
@@ -383,9 +379,7 @@ def init_twoshot_onekill(exp_path, current_dir, model_name):
 
     return replay_memory, dir_list, png_list
 
-if __name__ == '__main__':
-    import inspect, os, csv, pickle
-    from multiprocessing import Pool
+
 def get_valid_angles():
     import csv
     f = open('experience_angles.csv', 'r')
@@ -403,31 +397,21 @@ if __name__ == '__main__':
     # from multiprocessing import Pool
     from tensorflow.python.keras.applications.vgg16 import VGG16
 
-    f = open('experience_angles.csv', 'r')
-    rdr = csv.reader(f)
-    angles = []
-    for line in rdr:
-        angles.append(int(line[0]))
-    f.close()
-    angles = list(set(angles))
+    # angles = get_valid_angles()
+    angles = [8,10,11,14,17,18,19,20,21,22,23,26,30,31,34,35,36,46,61,65,67,70,75]
 
     current_path = inspect.getfile(inspect.currentframe())
     current_dir = os.path.dirname(os.path.abspath(current_path))
     EXP_PATH=os.path.join(current_dir,"experiences_gathering")
-
     vgg16 = VGG16(weights= 'imagenet')
 
     print('Populating replay memory...')
     # pool = Pool(processes=3)
     # pool.map(angles[:])
-    replay_memory = init_replaymemory_WithAngleSet(angles, EXP_PATH, current_dir, vgg16)
-
-    with open(os.path.join(EXP_PATH, 'replay_memoryAll'), 'wb') as f:
-        pickle.dump(replay_memory, f)
-    print('Done')
     # pool.map(init_replaymemory_WithAngleSet, angles)
-    
-    replay_memory = (angles, EXP_PATH, current_dir, vgg16)
+
+    replay_memory = init_replaymemory_WithAngleSet(angles, EXP_PATH, current_dir, vgg16)
+    # replay_memory = (angles, EXP_PATH, current_dir, vgg16)
 
     with open(os.path.join(EXP_PATH, 'replay_memoryAll'), 'wb') as f:
         pickle.dump(replay_memory, f)
