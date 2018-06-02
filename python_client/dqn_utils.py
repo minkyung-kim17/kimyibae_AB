@@ -351,6 +351,16 @@ def init_twoshot_onekill(exp_path, current_dir, model_name):
 
     return replay_memory, dir_list, png_list
 
+def get_valid_angles():
+    import csv
+    f = open('experience_angles.csv', 'r')
+    rdr = csv.reader(f)
+    angles = []
+    for line in rdr:
+        angles.append(int(line[0]))
+    f.close()
+    angles = list(set(angles))
+    return angles
 
 # experience_gathering으로부터 각도셋(experience_angles.csv)으로 pickle 생성
 if __name__ == '__main__':

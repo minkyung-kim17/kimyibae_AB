@@ -24,10 +24,14 @@ dqn_logger.addHandler(logging.FileHandler("dqn_logger.log"))
 # path 설정 ...
 current_path = inspect.getfile(inspect.currentframe())
 current_dir = os.path.dirname(os.path.abspath(current_path))
-EXP_PATH=os.path.join(current_dir,"experiences_gathering")
+# EXP_PATH_gather=os.path.join(current_dir,"experiences_gathering")
+EXP_PATH=os.path.join(current_dir,"experiences")
 SCR_PATH=os.path.join(current_dir,"screenshots")
 SUMM_PATH=os.path.join(current_dir, "tensorboard") # tf.summary dir
 
+# if not os.path.exists(EXP_PATH_gather):
+	# print('There is no replay_memory')
+	# sys.exit()
 if not os.path.exists(EXP_PATH):
 	os.mkdir(EXP_PATH)
 if not os.path.exists(SCR_PATH):
@@ -69,7 +73,8 @@ wrapper = wrap.WrapperPython('127.0.0.1')
 vgg16 = VGG16(weights= 'imagenet')
 
 # set the action sets # 앗 여기도 csv 파일로 읽어서 만들면 편할 듯.. 나중에 각도 추가 하거나 뭐 할때
-valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
+# valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
+valid_angles = dqn_utils.get_valid_angles()
 valid_taptimes = list(range(500, 2501, 100))  # 500부터 2500까지 100씩 증가
 
 # Create a global step variable
@@ -121,7 +126,9 @@ with tf.Session() as sess:
 	replay_memory_size = 500000
 	print('Populating replay memory...')
 	# replay_memory = [] # pretrain_memory가 사실 replay_memory가 되는게 아닌가? 
-	with open(os.path.join(EXP_PATH, 'pretrain_memory_5'), 'rb') as f:
+	# with open(os.path.join(EXP_PATH, 'pretrain_memory_5'), 'rb') as f:
+	with open(os.path.join(EXP_PATH, 'replay_memoryAll'), 'rb') as f:
+	
 		# pretrain_memory = pickle.load(f)
 		replay_memory = pickle.load(f)
 

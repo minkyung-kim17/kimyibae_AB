@@ -27,7 +27,7 @@ model_type = int(input("Write your model number (oneNN(1) or parNN(2)):"))
 # path 설정 ...
 current_path = inspect.getfile(inspect.currentframe())
 current_dir = os.path.dirname(os.path.abspath(current_path))
-EXP_PATH=os.path.join(current_dir,"experiences_gathering-test") 
+EXP_PATH=os.path.join(current_dir,"experiences-test") 
 SCR_PATH=os.path.join(current_dir,"screenshots")
 # SUMM_PATH=os.path.join(current_dir, "tensorboard-test") # test에서 tensorboard를 기록해야 하는가? 
 
@@ -77,7 +77,8 @@ wrapper = wrap.WrapperPython('127.0.0.1')
 vgg16 = VGG16(weights= 'imagenet')
 
 # set the action sets
-valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
+# valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
+valid_angles = dqn_utils.get_valid_angles()
 valid_taptimes = list(range(500, 2501, 100))  # 500부터 2500까지 100씩 증가
 
 # Create a global step variable # 일단 시작은 0이고, checkpoint를 불러오면 저장된 global_step이 들어오는건가...
@@ -116,7 +117,7 @@ with tf.Session() as sess:
 	# 처음에 안됐었던 이유는, global_step이란 tensor 변수를 안만들어서임
 	print("This checkpoint has been made after {} shots experience".format(total_t))
 
-	epsilon = 0 # 0으로 해본다 좀 배워라 좀
+	epsilon = 0.1 # 0으로 해본다 좀 배워라 좀
 	print("Epsilon used in this test is {}".format(epsilon))
 
 	## test할때는... epsilon이 있어야 하는가?... 아주 학습이 잘 된 경우면 greedy로 뽑으면 되니까 epsilon=0? 혹시 몰라서 0.1로 아래 playing에서 줌
