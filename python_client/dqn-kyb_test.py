@@ -16,7 +16,8 @@ import dqn_utils
 import pdb
 
 # model_type = 0
-model_type = int(input("Write your model number (oneNN(1) or parNN(2)):"))
+# model_type = int(input("Write your model number (oneNN(1) or parNN(2)):"))
+model_type = 2
 
 # log 설정 ... # test라 일단 logger 뺌 ...?
 # dqn_logger = logging.getLogger("dqn_logger")
@@ -38,12 +39,31 @@ if not os.path.exists(SCR_PATH):
 # if not os.path.exists(SUMM_PATH):
 	# os.mkdir(SUMM_PATH)
 
+# vgg에 대한 의심... np.max(차이) = 1이 안됨. 그러나 거의 절반이 숫자는 다름 ... 
+# state = []
+# for i in range(4):
+# 	with open(os.path.join(EXP_PATH, 'state_%d'%i), 'rb') as f: # 여기가 마지막으로 사용한 코드 
+# 		state.append(pickle.load(f))
+# 	# pdb.set_trace()
+# a =[1 for i in range(len(state[0])) if np.abs(state[0][i]-state[1][i])<=0.0001 ]
+# b =[1 for i in range(len(state[0])) if np.abs(state[1][i]-state[2][i])<=0.0001 ]
+# c =[1 for i in range(len(state[0])) if np.abs(state[2][i]-state[3][i])<=0.0001 ]
+
+# # a =(state[0]-state[1]).tolist().count(0)
+# # b =(state[1]-state[2]).tolist().count(0)
+# # c =(state[2]-state[3]).tolist().count(0)
+# # print(a,b,c)
+# print(len(a), len(b), len(c))
+# pdb.set_trace()
+
 if model_type == 1:
 	checkpoint_dir = os.path.join(current_dir, "checkpoints-oneNN") # saver.restore 할때는 여기 
 	# checkpoint_path = os.path.join(checkpoint_dir, "model") # checkpoint file path, saver.save 할때는 여기
 	# 우선 test에서는 학습을 안하도록 했음... 
 elif model_type == 2:
-	checkpoint_dir = os.path.join(current_dir, "checkpoints-parNN") # saver.restore 할때는 여기
+	# checkpoint_dir = os.path.join(current_dir, "checkpoints-parNN") # saver.restore 할때는 여기
+	checkpoint_dir = os.path.join(current_dir, "checkpoints-parNN_level9") # saver.restore 할때는 여기
+	# checkpoint_dir안에 checkpoint path 정보(directory name)도 바꿔줘야함
 
 if not os.path.exists(checkpoint_dir):
 	print("There is no checkpoint. Please learn first")
@@ -78,8 +98,10 @@ vgg16 = VGG16(weights= 'imagenet')
 
 # set the action sets
 # valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
-valid_angles = dqn_utils.get_valid_angles()
-valid_taptimes = list(range(500, 2501, 100))  # 500부터 2500까지 100씩 증가
+# valid_angles = dqn_utils.get_valid_angles()
+# valid_taptimes = list(range(500, 2501, 100))  # 500부터 2500까지 100씩 증가
+valid_angles = [8, 10, 11, 14, 17, 18, 19, 20, 21, 22, 23, 26, 30, 31, 34, 35, 36, 46, 61, 65, 67, 70] # 55제외 
+valid_taptimes = [600, 700, 900, 1000, 1100, 1200, 1300, 1500, 1600, 1700, 1800, 2000, 2500]
 
 # Create a global step variable # 일단 시작은 0이고, checkpoint를 불러오면 저장된 global_step이 들어오는건가...
 global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -108,6 +130,7 @@ with tf.Session() as sess:
 
 	latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir) # path를 반환
 	# latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir, latest_filename="checkpoint") # checkpoint 여러개를 저장해 놨다가 쓸수 있을듯
+	# pdb.set_trace()
 	if latest_checkpoint:
 		print("\n")
 		print("Loading model checkpoint {}...".format(latest_checkpoint))
@@ -117,7 +140,7 @@ with tf.Session() as sess:
 	# 처음에 안됐었던 이유는, global_step이란 tensor 변수를 안만들어서임
 	print("This checkpoint has been made after {} shots experience".format(total_t))
 
-	epsilon = 0.1 # 0으로 해본다 좀 배워라 좀
+	epsilon = 0 # 0으로 해본다 좀 배워라 좀
 	print("Epsilon used in this test is {}".format(epsilon))
 
 	## test할때는... epsilon이 있어야 하는가?... 아주 학습이 잘 된 경우면 greedy로 뽑으면 되니까 epsilon=0? 혹시 몰라서 0.1로 아래 playing에서 줌
@@ -200,7 +223,7 @@ with tf.Session() as sess:
 	# dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
 
 	# pdb.set_trace()
-	current_level = 1
+	current_level = 8
 	while True:
 
 		game_state = comm.comm_get_state(s, silent=False)
@@ -225,7 +248,7 @@ with tf.Session() as sess:
 			print ("########################################################")
 			print ("Level selection state")
 
-			current_level = 1 # test 시작
+			# current_level = 1 # test 시작
 			comm.comm_load_level(s, current_level, silent=False)
 
 			print ("level is loaded")
@@ -287,7 +310,8 @@ with tf.Session() as sess:
 				save_path = screenshot_path+"_seg.png"
 				state_img = wrapper.save_seg(screenshot_path, save_path)
 				state = dqn_utils.get_feature_4096(model=vgg16, img_path=save_path) # 수정: 이 함수 안에서 크기 조절하는게 좋을 듯
-
+				with open(os.path.join(EXP_PATH, 'state_%d'%t), 'wb') as f: # 여기가 마지막으로 사용한 코드 
+					pickle.dump(state, f)
 				print('Choose action from given Q network model')
 
 				# Epsilon for this time step
