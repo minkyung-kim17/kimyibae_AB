@@ -43,6 +43,7 @@ if not os.path.exists(SUMM_PATH):
 
 checkpoint_dir = os.path.join(current_dir, "checkpoints-parNN")
 checkpoint_path = os.path.join(checkpoint_dir, "model") # checkpoint file path
+# checkpoint_path = os.path.join(checkpoint_dir, "model") # checkpoint file path
 
 if not os.path.exists(checkpoint_dir):
 	os.makedirs(checkpoint_dir)
@@ -79,10 +80,12 @@ wrapper = wrap.WrapperPython('127.0.0.1')
 vgg16 = VGG16(weights= 'imagenet')
 
 # set the action sets
-valid_angles = dqn_utils.get_valid_angles()
+# valid_angles = dqn_utils.get_valid_angles()
 # [8, 10, 11, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 30, 31, 34, 35, 36, 41, 43, 46, 52, 55, 56, 58, 61, 63, 65, 67, 70, 72, 75]
 # valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
-valid_taptimes = list(range(500, 2501, 100))  # 500부터 2500까지 100씩 증가
+# valid_taptimes = list(range(500, 2501, 100))  # 500부터 2500까지 100씩 증가
+valid_angles = [8, 10, 11, 14, 17, 18, 19, 20, 21, 22, 23, 26, 30, 31, 34, 35, 36, 46, 61, 65, 67, 70] # 55제외 
+valid_taptimes = [600, 700, 900, 1000, 1100, 1200, 1300, 1500, 1600, 1700, 1800, 2000, 2500]
 
 # Create a global step variable
 global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -120,7 +123,7 @@ with tf.Session() as sess:
 	##
 	epsilon_start = 1.0
 	epsilon_end = 0.1
-	epsilon_decay_steps = 500000
+	epsilon_decay_steps = 1200000
 	epsilons = np.linspace(epsilon_start, epsilon_end, epsilon_decay_steps)
 
 	policy_angle = dqn_utils.make_epsilon_greedy_policy_parNN(
@@ -143,11 +146,18 @@ with tf.Session() as sess:
 	print('Populating replay memory...')
 	# replay_memory = []
 	# with open(os.path.join(EXP_PATH, 'pretrain_memory_5'), 'rb') as f:
-	with open(os.path.join(EXP_PATH, 'replay_memoryAll'), 'rb') as f:
+	replay_memory_filename = 'replay_memory_0604_0057'
+	with open(os.path.join(EXP_PATH, replay_memory_filename), 'rb') as f:
 		# pretrain_memory = pickle.load(f)
 		replay_memory = pickle.load(f)
 		# pdb.set_trace()
-
+	with open(os.path.join(EXP_PATH, 'replay_memoryAll_2'), 'rb') as f: # 
+		replay_memory_2 = pickle.load(f)
+	with open(os.path.join(EXP_PATH, 'replay_memory_18_21'), 'rb') as f: # 
+		replay_memory_3 = pickle.load(f)
+	replay_memory = replay_memory + replay_memory_2 + replay_memory_3 # 2694, 4415
+	# pdb.set_trace() 
+	print("Loading replay memory ", replay_memory_filename)	
 
 	#####################
 	##### Checkpoint load
@@ -214,9 +224,14 @@ with tf.Session() as sess:
 	i_episodes = [0]*21 # 각 레벨별 episode수
 
 	# loss = None # 왠지 단순히 print하려고 하는것 같음
-	dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
-	dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
+	# dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
+	# dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
 
+	# current_level = 1
+	# lost_flag = 0
+	# shot_idx = 0 # for epsilon
+	training_start_level = 1
+	current_level = training_start_level
 	while True:
 
 		game_state = comm.comm_get_state(s, silent=False)
@@ -241,7 +256,8 @@ with tf.Session() as sess:
 			print ("########################################################")
 			print ("Level selection state")
 
-			comm.comm_load_level(s, np.random.randint(1,22), silent=False)
+			# comm.comm_load_level(s, np.random.randint(1,22), silent=False)
+			comm.comm_load_level(s, current_level, silent=False) # initial current_level 1
 
 			print ("level is loaded")
 
@@ -254,13 +270,26 @@ with tf.Session() as sess:
 			print ("########################################################")
 			print ("Won state")
 			# resater random level
-			comm.comm_load_level(s, np.random.randint(1,22), silent=False)
+			# comm.comm_load_level(s, np.random.randint(1,22), silent=False)
+
+			if current_level == 21 :#or lost_flag == 1:
+				# lost_flag = 0
+				current_level = training_start_level
+			else:
+				current_level +=1
+				
+			comm.comm_load_level(s, current_level, silent=False)
 
 		elif game_state=='LOST':
 			print ("########################################################")
 			print ("Lost state")
 			# restart random level
-			comm.comm_load_level(s, np.random.randint(1,22), silent=False)
+			# comm.comm_load_level(s, np.random.randint(1,22), silent=False)
+
+			# current_level = 1
+			# comm.comm_load_level(s, current_level, silent=False)
+			# lost_flag = 1
+			comm.comm_restart_level(s)
 
 		elif game_state=='PLAYING':
 			print ("########################################################")
@@ -273,7 +302,7 @@ with tf.Session() as sess:
 				os.mkdir(episode_dir)
 
 			# 새 에피소드 시작할 때마다 checkpoint 새로 생성
-			saver.save(sess, checkpoint_path)
+			# saver.save(sess, checkpoint_path) # 뭔가 thread안이랑 밖이랑 같이 저장하면서 checkpoint temp가 충돌?? 하는 것 같은 오류가..
 			current_level = comm.comm_get_current_level(s)
 
 			i_episodes[current_level-1] += 1
@@ -303,10 +332,13 @@ with tf.Session() as sess:
 				state = dqn_utils.get_feature_4096(model=vgg16, img_path=save_path)
 				# pdb.set_trace()
 
-				print('Choose action from given Q network model')
+				# print('Choose action from given Q network model')
 
 				# Epsilon for this time step
 				epsilon = epsilons[min(total_t, epsilon_decay_steps-1)]
+				# epsilon = epsilons[min(shot_idx, epsilon_decay_steps-1)]
+
+				print('Choose action from given Q network model with epsilon:', epsilon)
 
 				# Add epsilon to Tensorboard
 				episode_summary = tf.Summary() # 수정:
@@ -315,9 +347,9 @@ with tf.Session() as sess:
 				taptime_estimator.summary_writer.add_summary(episode_summary, total_t)
 
 				# Update the target estimator
-				if total_t % update_target_estimator_every == 0:
-					dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
-					dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
+				# if total_t % update_target_estimator_every == 0:
+					# dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
+					# dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
 					# print("\nCopied model parameters to target network.")
 
 				# pdb.set_trace()
@@ -344,6 +376,7 @@ with tf.Session() as sess:
 				dy = max_mag * math.sin(math.radians(angle_action))
 				action = [angle_action, taptime_action]
 				print("Choose action: angle: {}, taptime: {}".format(angle_action, taptime_action), end="\n")
+				# 여기에 angle 뽑힌 각도도... 
 
 				# shoot
 				start_score = wrapper.get_score_in_game(screenshot_path)
@@ -427,6 +460,7 @@ with tf.Session() as sess:
 				# state = next_state
 				total_t = sess.run(tf.train.get_global_step()) # thread랑 같이 써서... 더하기를 하지말고 계속 받아오는 걸로...
 				# total_t += 1
+				# shot_idx += 1
 
 			print('\nOne episode is done')
 
