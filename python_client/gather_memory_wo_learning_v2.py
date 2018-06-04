@@ -25,7 +25,7 @@ gathering_logger.addHandler(logging.FileHandler("gathering_logger.log"))
 # path 설정 ...
 current_path = inspect.getfile(inspect.currentframe())
 current_dir = os.path.dirname(os.path.abspath(current_path))
-EXP_PATH=os.path.join(current_dir,"experiences_gathering")
+EXP_PATH=os.path.join(current_dir,"experiences_")
 SCR_PATH=os.path.join(current_dir,"screenshots")
 
 if not os.path.exists(EXP_PATH):
@@ -67,9 +67,9 @@ wrapper = wrap.WrapperPython('127.0.0.1')
 # vgg16 = VGG16(weights= 'imagenet')
 
 # set the action sets
-valid_angles = list(range(5, 86, 1)) # 5도부터 85도까지 5도씩 증가
+valid_angles = [8, 10, 11, 14, 17, 18, 19, 20, 21, 22, 23, 26, 30, 31, 34, 35, 36, 46, 61, 65, 67, 70] # 5도부터 85도까지 5도씩 증가
 # valid_taptimes = np.array((range(500, 2501, 100)))/1000).tolist() # 500부터 2500까지 100씩 증가
-valid_taptimes = list(range(500, 2501, 100)) # 500부터 2500까지 100씩 증가
+valid_taptimes = [600,700,900,1000,1100,1200,1300,1500,1600,1700,1800,2000,2500] # 500부터 2500까지 100씩 증가
 
 # angle_estimator = q_network.DQN_Estimator(scope="angle_estimator", output_size=len(valid_angles), summaries_dir=None)
 # angle_target_estimator = q_network.DQN_Estimator(scope="angle_target_estimator", output_size=len(valid_angles))
@@ -137,9 +137,11 @@ with tf.Session() as sess:
 	print('Start Learning!') ### 게임을 하면서, 학습을 하면서, policy를 업데이트 ##########
 	####################################################################################
 
-	load_level = 13
-	angle_action_idx = 59
+	load_level = 2
+	angle_action_idx = 0
 	angle_action = valid_angles[angle_action_idx]
+	taptime_action_idx = 0
+	taptime_action = valid_taptimes[angle_action_idx]
 	i_episode=0
 	loss = None # 수정: 여기서 하는게 맞나... Level_selection안에 넣어놨었는데, 여기를 들어가지 않고 실행되는 경우도 있었음
 	while True:
@@ -280,8 +282,10 @@ with tf.Session() as sess:
 					angle_action = valid_angles[angle_action_idx]
 				else:
 					# 0 이상의 index를 추출, 0보다 작으면 0
-					temp_index = max(int(np.random.normal(angle_action, 5)),0)
-					angle_action = valid_angles[min(temp_index, len(valid_angles)-1)]
+					# temp_index = max(int(np.random.normal(angle_action_idx, 5)),0)
+					# angle_action = valid_angles[min(temp_index, len(valid_angles)-1)]
+					temp_index = int(np.random.normal(angle_action_idx, 5))%len(valid_angles)
+					angle_action = valid_angles[temp_index]
 					# temp_index = np.random.choice(np.arange(len(angle_action_probs)), p=angle_action_probs)
 					# angle_action = valid_angles[temp_index]
 				taptime_action = np.random.choice(valid_taptimes)
@@ -310,64 +314,7 @@ with tf.Session() as sess:
 					pickle.dump(action, f)
 				with open(os.path.join(shot_dir, 'reward'), 'wb') as f:
 					pickle.dump(reward, f)
-				# next_state = dqn_utils.get_feature_4096(model=vgg16, img_path=save_path)
 
-				# If our replay memory is full, pop the first element
-				# if len(replay_memory) == replay_memory_size:
-				#     replay_memory.pop(0)
-
-				# Save transition to replay memory
-				# replay_memory.append(Transition(state, action, reward, next_state, game_state))
-
-				# Update statistics
-				# stats.episode_rewards[i_episode] += reward # i_episode번째의 episode의 총 reward를 얻기 위해 계속 누적
-				# stats.episode_lengths[i_episode] = t # i_episode번째의 길이를 얻기 위해 t 값으로 계속 저장
-
-				# minibatch로 q network weight update
-				# batch_size = 6
-				# discount_factor = 0.99
-				#
-				# if len(replay_memory) > batch_size:
-				# 	samples = random.sample(replay_memory, batch_size)
-				# 	states_batch, action_batch, reward_batch, next_states_batch, game_state_batch = map(np.array, zip(*samples))
-				# 	# (1,1,4096) (1,2) (1,) (1,)
-				#
-				# 	done_batch = np.array([1 if (game_state =='LOST' or 'WON') else 0 for game_state in game_state_batch])
-				#
-				# 	# angle_action_batch = np.array([action_batch[i][0] for i in range(batch_size)])
-				# 	# taptime_action_batch = np.array([action_batch[i][1] for i in range(batch_size)])
-				#
-				# 	angle_action_batch_idx = np.array([valid_angles.index(action_batch[i][0]) for i in range(batch_size)])
-				# 	taptime_action_batch_idx = np.array([valid_taptimes.index(action_batch[i][1]) for i in range(batch_size)])
-				#
-				# 	# 학습에 넣을 target reward 계산
-				#
-				# 	angle_q_values_next = angle_estimator.predict(sess, next_states_batch)
-				# 	best_angle_actions = np.argmax(angle_q_values_next, axis=1)
-				# 	taptime_q_values_next = taptime_estimator.predict(sess, next_states_batch)
-				# 	best_taptime_actions = np.argmax(taptime_q_values_next, axis=1)
-				#
-				# 	angle_q_values_next_target = angle_target_estimator.predict(sess, next_states_batch)
-				# 	taptime_q_values_next_target = taptime_target_estimator.predict(sess, next_states_batch)
-				#
-				# 	angle_targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * \
-			    #         discount_factor * angle_q_values_next_target[np.arange(batch_size), best_angle_actions]
-				#
-				# 	taptime_targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * \
-			    #         discount_factor * taptime_q_values_next_target[np.arange(batch_size), best_taptime_actions]
-				#
-				# 	# Perform gradient descent update
-				# 	states_batch = np.array(states_batch)
-				# 	# angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch, angle_targets_batch)
-				# 	# taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch, taptime_targets_batch)
-				#
-				# 	angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch_idx, angle_targets_batch)
-				# 	taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
-				#
-				# 	print('Learning done (loss: ', angle_loss, taptime_loss, ')')
-
-				# state 판별:
-				# if game_state가 playing이 아니면 :
 				if game_state!='PLAYING':
 					break
 

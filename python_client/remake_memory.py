@@ -6,7 +6,7 @@ current_path = inspect.getfile(inspect.currentframe())
 current_dir = os.path.dirname(os.path.abspath(current_path))
 EXP_PATH=os.path.join(current_dir,"experiences")
 
-with open(os.path.join(EXP_PATH, 'replay_memoryAll'), 'rb') as f:	
+with open(os.path.join(EXP_PATH, 'replay_memoryAll'), 'rb') as f:
 		replay_memory = pickle.load(f)
 
 start_time = time.time()
@@ -18,8 +18,13 @@ taptimes = [600, 700, 900, 1000, 1100, 1200, 1300, 1500, 1600, 1700, 1800, 2000,
 
 remake = []
 for experience in replay_memory:
+
 	if experience[1][0] in angles and experience[1][1] in taptimes: 
 		remake.append(experience)
+
+# 	if experience[1][0] in angles: # or experience[1][1] in taptimes:
+# 		replay_memory_remake.append(experience)
+
 
 print("===%s seconds---" %(time.time()-start_time))
 print(len(remake))

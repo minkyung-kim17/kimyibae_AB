@@ -216,6 +216,34 @@ def init_replaymemory(angle_step, exp_path, current_dir, model_name):
             replay_memory.append([state, action, reward, next_state, game_state])
     return replay_memory
 
+def init_replaymemory_WithAngleSet(angle_set, exp_path, current_dir, model_name):
+    import os, glob, pickle
+    replay_memory = []
+    for angle in angle_set:
+        print(angle)
+        for filename in glob.iglob("%s/*/*/s_?_%d_*_seg.png"%(exp_path, angle)):
+            next_state = os.path.abspath(filename)
+            if "PLAYING" in next_state:
+                game_state = "PLAYING"
+            elif "LOST" in next_state:
+                game_state = "LOST"
+            elif "WON" in next_state:
+                game_state = "WON"
+            else:
+                game_state = None
+                print("game_state error: None")
+            dir = os.path.dirname(next_state)
+            state = glob.glob("%s/s_?.png_seg.png"%dir)
+            action, reward= None, None
+            with open(os.path.join(dir, 'action'), 'rb') as f:
+                action = pickle.load(f)
+            with open(os.path.join(dir, 'reward'), 'rb') as f:
+                reward = pickle.load(f)
+            state = get_feature_4096(model=model_name, img_path=state[0])
+            next_state = get_feature_4096(model=model_name, img_path=next_state)
+            replay_memory.append([state, action, reward, next_state, game_state])
+    return replay_memory
+
 def pretrain(replay_memory, valid_angles, valid_taptimes, estimator, target_estimator, sess, batch_size = 6, discount_factor = 0.99):
     samples = random.sample(replay_memory, batch_size)
     states_batch, action_batch, reward_batch, next_states_batch, game_state_batch = map(np.array, zip(*samples))
@@ -287,7 +315,7 @@ def pretrain_parNN(replay_memory, valid_angles, valid_taptimes, angle_estimator,
     states_batch = np.array(states_batch)
     angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch_idx, angle_targets_batch)
     taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
-    return angle_loss, taptime_loss            
+    return angle_loss, taptime_loss
 
 def init_oneshot_onekill(exp_path, current_dir, model_name):
     import os, glob, pickle
@@ -351,6 +379,7 @@ def init_twoshot_onekill(exp_path, current_dir, model_name):
 
     return replay_memory, dir_list, png_list
 
+
 def get_valid_angles():
     import csv
     f = open('experience_angles.csv', 'r')
@@ -368,25 +397,21 @@ if __name__ == '__main__':
     # from multiprocessing import Pool
     from tensorflow.python.keras.applications.vgg16 import VGG16
 
-    f = open('experience_angles.csv', 'r')
-    rdr = csv.reader(f)
-    angles = []
-    for line in rdr:
-        angles.append(int(line[0]))
-    f.close()
-    angles = list(set(angles))
+    # angles = get_valid_angles()
+    angles = [8,10,11,14,17,18,19,20,21,22,23,26,30,31,34,35,36,46,61,65,67,70,75]
 
     current_path = inspect.getfile(inspect.currentframe())
     current_dir = os.path.dirname(os.path.abspath(current_path))
     EXP_PATH=os.path.join(current_dir,"experiences_gathering")
-
     vgg16 = VGG16(weights= 'imagenet')
 
     print('Populating replay memory...')
     # pool = Pool(processes=3)
+    # pool.map(angles[:])
     # pool.map(init_replaymemory_WithAngleSet, angles)
-    
-    replay_memory = (angles, EXP_PATH, current_dir, vgg16)
+
+    replay_memory = init_replaymemory_WithAngleSet(angles, EXP_PATH, current_dir, vgg16)
+    # replay_memory = (angles, EXP_PATH, current_dir, vgg16)
 
     with open(os.path.join(EXP_PATH, 'replay_memoryAll'), 'wb') as f:
         pickle.dump(replay_memory, f)

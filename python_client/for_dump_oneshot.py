@@ -16,11 +16,11 @@ import dqn_utils
 import pdb
 
 # log 설정 ...
-oneshotonekill_logger = logging.getLogger("oneshotonekill_logger")
+final_oneshot_logger = logging.getLogger("final_oneshot_logger")
 # Debug < Info < Warning < Error < Critical
-oneshotonekill_logger.setLevel(logging.DEBUG)
-oneshotonekill_logger.addHandler(logging.StreamHandler())
-oneshotonekill_logger.addHandler(logging.FileHandler("oneshotonekill_logger.log"))
+final_oneshot_logger.setLevel(logging.DEBUG)
+final_oneshot_logger.addHandler(logging.StreamHandler())
+final_oneshot_logger.addHandler(logging.FileHandler("final_oneshot_logger.log"))
 
 # path 설정 ...
 current_path = inspect.getfile(inspect.currentframe())
@@ -28,7 +28,7 @@ current_dir = os.path.dirname(os.path.abspath(current_path))
 EXP_PATH=os.path.join(current_dir,"experiences_gathering")
 SCR_PATH=os.path.join(current_dir,"screenshots")
 SUMM_PATH=os.path.join(current_dir, "tensorboard") # tf.summary dir
-
+#
 if not os.path.exists(EXP_PATH):
 	os.mkdir(EXP_PATH)
 if not os.path.exists(SCR_PATH):
@@ -44,11 +44,10 @@ if not os.path.exists(checkpoint_dir):
 
 # episode_prefix	= '%s/startAt_%s'%(EXP_PATH, time.strftime("%Y%m%d_%H%M"))
 run_start_dir = os.path.join(EXP_PATH, "startAt_%s"%time.strftime("%Y%m%d_%H%M"))
+#
 
-# while True:
-# 	pass
-vgg16 = VGG16(weights= 'imagenet')
-
+# vgg16 = VGG16(weights= 'imagenet')
+#
 # oneshotonekill_memory, oneshotonekill_dir, oneshotonekill_path  = dqn_utils.init_oneshot_onekill(EXP_PATH, current_dir, vgg16)
 # oneshotonekill_angles = {}
 # oneshotonekill_taptimes = {}
@@ -62,7 +61,7 @@ vgg16 = VGG16(weights= 'imagenet')
 # 	angle_action = oneshotonekill_memory[i][1][0]
 # 	tap_action = oneshotonekill_memory[i][1][1]
 # 	reward = oneshotonekill_memory[i][2]
-# 	oneshotonekill_logger.debug("%s [%d, %d] %d"%(oneshotonekill_path[i], angle_action, tap_action, reward))
+# 	final_oneshot_logger.debug("%s [%d, %d] %d"%(oneshotonekill_path[i], angle_action, tap_action, reward))
 # 	if angle_action in oneshotonekill_angles:
 # 		oneshotonekill_angles[angle_action].append(reward)
 # 	else:
@@ -76,15 +75,18 @@ vgg16 = VGG16(weights= 'imagenet')
 # with open(os.path.join(EXP_PATH, 'oneshotonekill_taptimes'), 'wb') as f:
 # 	pickle.dump(oneshotonekill_taptimes, f)
 # print('logger done')
-# oneshotonekill_logger.debug(oneshotonekill_angles.keys())
-# oneshotonekill_logger.debug(oneshotonekill_taptimes.keys())
+# final_oneshot_logger.debug(oneshotonekill_angles.keys())
+# final_oneshot_logger.debug(oneshotonekill_taptimes.keys())
+
+
+
 oneshotonekill_memory = []
 oneshotonekill_dir = []
 oneshotonekill_angles = {}
 oneshotonekill_taptimes = {}
-levels = {'level1':[], 'level2':[], 'level3':[], 'level4':[], 'level5':[], 'level6':[], 'level7':[], 'level8':[],\
-		'level9':[], 'level10':[], 'level11':[], 'level12':[], 'level13':[], 'level14':[], 'level15':[], 'level16':[],	\
-		'level17':[], 'level18':[], 'level19':[], 'level20':[], 'level21':[]}
+levels = {'level1_':[], 'level2_':[], 'level3_':[], 'level4_':[], 'level5_':[], 'level6_':[], 'level7_':[], 'level8_':[],\
+		'level9_':[], 'level10_':[], 'level11_':[], 'level12_':[], 'level13_':[], 'level14_':[], 'level15_':[], 'level16_':[],	\
+		'level17_':[], 'level18_':[], 'level19_':[], 'level20_':[], 'level21_':[]}
 with open(os.path.join(EXP_PATH, 'oneshotonekill_dir'), 'rb') as f:
 	oneshotonekill_dir = pickle.load(f)
 with open(os.path.join(EXP_PATH, 'oneshotonekill_memory'), 'rb') as f:
@@ -102,7 +104,7 @@ for idx in range(len(oneshotonekill_dir)):
 			action = oneshotonekill_memory[idx][1]
 			reward = oneshotonekill_memory[idx][2]
 			levels[key].append({'action':action, 'reward': reward})
-			oneshotonekill_logger.debug("{} {} angle {} tap {} reward {}".format(oneshotonekill_dir[idx], key, action[0], action[1], reward) )
+			final_oneshot_logger.debug("{} {} angle {} tap {} reward {}".format(oneshotonekill_dir[idx], key, action[0], action[1], reward) )
 
 with open(os.path.join(EXP_PATH, 'oneshotonekill_sortlevel'), 'wb') as f:
 	pickle.dump(levels, f)
