@@ -74,8 +74,10 @@ vgg16 = VGG16(weights= 'imagenet')
 
 # set the action sets # 앗 여기도 csv 파일로 읽어서 만들면 편할 듯.. 나중에 각도 추가 하거나 뭐 할때
 # valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
-valid_angles = dqn_utils.get_valid_angles()
-valid_taptimes = list(range(500, 2501, 100))  # 500부터 2500까지 100씩 증가
+# valid_angles = dqn_utils.get_valid_angles()
+# valid_taptimes = list(range(500, 2501, 100))  # 500부터 2500까지 100씩 증가
+valid_angles = [8, 10, 11, 14, 17, 18, 19, 20, 21, 22, 23, 26, 30, 31, 34, 35, 36, 46, 61, 65, 67, 70] # 55제외 
+valid_taptimes = [600, 700, 900, 1000, 1100, 1200, 1300, 1500, 1600, 1700, 1800, 2000, 2500]
 
 # Create a global step variable
 global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -108,13 +110,12 @@ with tf.Session() as sess:
 	## user parameter
 	epsilon_start = 1.0
 	epsilon_end = 0.1
-	epsilon_decay_steps = 500000
+	epsilon_decay_steps = 1000000
 	epsilons = np.linspace(epsilon_start, epsilon_end, epsilon_decay_steps)
 
 	policy= dqn_utils.make_epsilon_greedy_policy(
 	        estimator,
 	        [len(valid_angles), len(valid_taptimes)])
-
 
 	########################################
 	##### Populating replay memory (size: N)
@@ -127,10 +128,16 @@ with tf.Session() as sess:
 	print('Populating replay memory...')
 	# replay_memory = [] # pretrain_memory가 사실 replay_memory가 되는게 아닌가? 
 	# with open(os.path.join(EXP_PATH, 'pretrain_memory_5'), 'rb') as f:
-	with open(os.path.join(EXP_PATH, 'replay_memoryAll'), 'rb') as f:
-	
-		# pretrain_memory = pickle.load(f)
+	replay_memory_filename = 'replay_memory_0604_0057' # 가장 처음 만든 1-21memory
+	with open(os.path.join(EXP_PATH, replay_memory_filename), 'rb') as f:
 		replay_memory = pickle.load(f)
+	with open(os.path.join(EXP_PATH, 'replay_memoryAll_2'), 'rb') as f: # 두번째 만든 1-21memory
+		replay_memory_2 = pickle.load(f)
+	with open(os.path.join(EXP_PATH, 'replay_memory_18_21'), 'rb') as f: # 두번째 만든 18-21memory
+		replay_memory_3 = pickle.load(f)
+	replay_memory = replay_memory + replay_memory_2 + replay_memory_3 # 2694, 4415
+	# pdb.set_trace() 
+	print("Loading replay memory ", replay_memory_filename)	
 
 	# pretrain_memory = dqn_utils.init_replaymemory(5, EXP_PATH, current_dir, vgg16)
 	# with open(os.path.join(EXP_PATH, 'pretrain_memory_5'), 'wb') as f:
@@ -185,6 +192,9 @@ with tf.Session() as sess:
 
 	dqn_utils.copy_model_parameters(sess, estimator, target_estimator)
 
+	training_start_level = 1
+	current_level = training_start_level
+
 	while True:
 
 		game_state = comm.comm_get_state(s, silent=False)
@@ -209,7 +219,8 @@ with tf.Session() as sess:
 			print ("########################################################")
 			print ("Level selection state")
 
-			comm.comm_load_level(s, np.random.randint(1,22), silent=False)
+			# comm.comm_load_level(s, np.random.randint(1,22), silent=False)
+			comm.comm_load_level(s, current_level, silent=False) # initial current_level 1
 
 			print ("level is loaded")
 
@@ -222,14 +233,23 @@ with tf.Session() as sess:
 			print ("########################################################")
 			print ("Won state")
 			# resater random level
-			comm.comm_load_level(s, np.random.randint(1,22), silent=False)
+			# comm.comm_load_level(s, np.random.randint(1,22), silent=False)
+
+			if current_level == 21 :#or lost_flag == 1:
+				# lost_flag = 0
+				current_level = training_start_level
+			else:
+				current_level +=1
+				
+			comm.comm_load_level(s, current_level, silent=False)
 
 
 		elif game_state=='LOST':
 			print ("########################################################")
 			print ("Lost state")
 			# restart random level
-			comm.comm_load_level(s, np.random.randint(1,22), silent=False)
+			# comm.comm_load_level(s, np.random.randint(1,22), silent=False)
+			comm.comm_restart_level(s)
 
 		elif game_state=='PLAYING':
 			print ("########################################################")
@@ -310,6 +330,7 @@ with tf.Session() as sess:
 				dy = max_mag * math.sin(math.radians(angle_action))
 				action = [angle_action, taptime_action]
 				print("Choose action: angle: {}, taptime: {}".format(angle_action, taptime_action), end="\n")
+				print("   with probs: angle: {}, taptime: {}".format(angle_action_probs[angle_action_idx], taptime_action_probs[taptime_action_idx]), end="\n") 
 
 				# shoot
 				start_score = wrapper.get_score_in_game(screenshot_path)
