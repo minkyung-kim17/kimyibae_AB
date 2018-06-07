@@ -1,4 +1,6 @@
 **/experiences*/
+**/checkpoints*/
+**/tensorboard*/
 **/screenshots/
 *.class
 *.pyc
