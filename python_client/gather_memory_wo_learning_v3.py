@@ -1,4 +1,4 @@
-import os, inspect, logging, glob, time, math, itertools, sys, shutil, plotting, pickle, random
+import os, inspect, logging, glob, time, math, itertools, sys, shutil, pickle, random
 from collections import deque, namedtuple
 import socket
 from PIL import Image
@@ -70,7 +70,7 @@ vgg16 = VGG16(weights= 'imagenet')
 valid_angles = [8, 10, 11, 14, 17, 18, 19, 20, 21, 22, 23, 26, 30, 31, 34, 35, 36, 46, 61, 65, 67, 70] # 5도부터 85도까지 5도씩 증가
 # valid_taptimes = np.array((range(500, 2501, 100)))/1000).tolist() # 500부터 2500까지 100씩 증가
 valid_taptimes = [600,700,900,1000,1100,1200,1300,1500,1600,1700,1800,2000,2500] # 500부터 2500까지 100씩 증가
-
+# valid_taptimes = [600]
 
 angle_actions = {
 	1:[[21]],
@@ -90,7 +90,7 @@ angle_actions = {
 	15:[[61],[67],[65]],
 	16:[[26]],
 	17:[[26]],
-	18:[[17],[22, 23],[30,31],[14]]
+	18:[[17],[22, 23],[30,31],[14], [31]]
 }
 taptime_actions = {
 	10:[[2500],[1100]],
@@ -99,7 +99,7 @@ taptime_actions = {
 	15:[[1800],[1700],[1000]],
 	16:[[1800]],
 	17:[[1500]],
-	18:[[700],[900],[1200],[1200]]
+	18:[[700],[900],[1200],[1200],[1200]]
 }
 
 init = tf.global_variables_initializer()
@@ -141,8 +141,13 @@ with tf.Session() as sess:
 	Transition = namedtuple("Transition", ["state", "action", "reward", "next_state", "game_state"])
 	replay_memory_size = 500000
 	print('Populating replay memory...')
-	replay_memory = []
+	# replay_memory = []
 	# replay_memory = np.load('').tolist()
+
+	try:	
+		replay_memory = np.load('replay_memory.npy').tolist()
+	except:
+		replay_memory = []
 
 	#####################
 	##### Checkpoint load
@@ -154,13 +159,14 @@ with tf.Session() as sess:
 	print('Start Learning!') ### 게임을 하면서, 학습을 하면서, policy를 업데이트 ##########
 	####################################################################################
 
-	load_level = 6
+	load_level = 1
 
 	i_episode=0
 	loss = None # 수정: 여기서 하는게 맞나... Level_selection안에 넣어놨었는데, 여기를 들어가지 않고 실행되는 경우도 있었음
 	i = 0
 	j = 0
 	k = 0
+	l = 0
 	while True:
 
 		game_state = comm.comm_get_state(s, silent=False)
@@ -221,29 +227,31 @@ with tf.Session() as sess:
 							i = 0
 							load_level +=1
 							comm.comm_load_level(s, load_level)
-					elif current_level == 18:
-						l += 1
-						if l <len(angle_actions[18][2]):
-							comm.comm_restart_level(s)
-						else:
-							l = 0
-							j += 1
-							if j <len(angle_actions[18][1]):
-								comm.comm_restart_level(s)
-							else:
-								j = 0
-								load_level +=1
-								comm.comm_load_level(s, load_level)
+					
 					else:
-						i, j, l = 0, 0
+						i, j = 0, 0
 						load_level +=1
 						comm.comm_load_level(s, load_level)
 			else:
-				i, j, k = 0, 0, 0
-				load_level +=1
-				if load_level == 19:
-					load_level = 1
-				comm.comm_load_level(s, load_level)
+				i, k = 0, 0 
+				if current_level == 18:
+					l += 1
+					if l <len(angle_actions[18][2]):
+						comm.comm_restart_level(s)
+					else:
+						l = 0
+						j += 1
+						if j <len(angle_actions[18][1]):
+							comm.comm_restart_level(s)
+						else:
+							j = 0
+							load_level =1
+							comm.comm_load_level(s, load_level)
+				else:
+					load_level +=1
+					# if load_level == 19:
+					# 	load_level = 1
+					comm.comm_load_level(s, load_level)
 
 
 		# elif game_state=='LOST':
@@ -317,7 +325,7 @@ with tf.Session() as sess:
 				print("\rStep {} ({}) @ Episode {}, loss: {} ".format(
 				        t, total_t, i_episode, loss), end="")
 				sys.stdout.flush()
-				pdb.set_trace()
+				# pdb.set_trace()
 				# Take a step (현재 policy로 다음 action을 정하네)
 				# angle_action_probs = policy_angle(sess, state, epsilon)
 				# taptime_action_probs = policy_taptime(sess, state, epsilon)
@@ -346,15 +354,24 @@ with tf.Session() as sess:
 					idx = l
 				else:
 					idx = 0
+
 				if t+1 <= len(angle_actions[current_level]):
 					angle_action = angle_actions[current_level][t][idx]
 					if current_level not in taptime_actions:
 						taptime_action = valid_taptimes[k]
 					else:
+						# pdb.set_trace()
 						taptime_action = taptime_actions[current_level][t][0]
 				else:
-					angle_action = angle_actions[current_level][-1][-1]
-					taptime_action = taptime_actions[current_level][-1][-1]
+					# pdb.set_trace()
+					if current_level==6:
+						angle_action = np.random.choice(angle_actions[6][0]+angle_actions[6][1])
+					else:
+						angle_action = angle_actions[current_level][-1][-1]
+					if current_level not in taptime_actions:
+						taptime_action = np.random.choice(valid_taptimes)
+					else:
+						taptime_action = taptime_actions[current_level][-1][-1]
 
 				dx = -max_mag * math.cos(math.radians(angle_action))
 				dy = max_mag * math.sin(math.radians(angle_action))
