@@ -90,7 +90,7 @@ angle_actions = {
 	15:[[61],[67],[65]],
 	16:[[26]],
 	17:[[26]],
-	18:[[17],[22],[30],[14]]
+	18:[[17],[22, 23],[30,31],[14]]
 }
 taptime_actions = {
 	10:[[2500],[1100]],
@@ -221,14 +221,27 @@ with tf.Session() as sess:
 							i = 0
 							load_level +=1
 							comm.comm_load_level(s, load_level)
+					elif current_level == 18:
+						l += 1
+						if l <len(angle_actions[18][2]):
+							comm.comm_restart_level(s)
+						else:
+							l = 0
+							j += 1
+							if j <len(angle_actions[18][1]):
+								comm.comm_restart_level(s)
+							else:
+								j = 0
+								load_level +=1
+								comm.comm_load_level(s, load_level)
 					else:
-						i, j = 0, 0
+						i, j, l = 0, 0
 						load_level +=1
 						comm.comm_load_level(s, load_level)
 			else:
 				i, j, k = 0, 0, 0
 				load_level +=1
-				if load_level ==18:
+				if load_level == 19:
 					load_level = 1
 				comm.comm_load_level(s, load_level)
 
@@ -304,7 +317,7 @@ with tf.Session() as sess:
 				print("\rStep {} ({}) @ Episode {}, loss: {} ".format(
 				        t, total_t, i_episode, loss), end="")
 				sys.stdout.flush()
-
+				pdb.set_trace()
 				# Take a step (현재 policy로 다음 action을 정하네)
 				# angle_action_probs = policy_angle(sess, state, epsilon)
 				# taptime_action_probs = policy_taptime(sess, state, epsilon)
@@ -323,21 +336,25 @@ with tf.Session() as sess:
 				max_mag = slingshot_rect[3]
 				# angle_action = valid_angles[angle_action_idx]
 				# taptime_action = valid_taptimes[taptime_action_idx]
+
+
 				if t==0:
 					idx = i
 				elif t == 1:
 					idx = j
+				elif t == 2:
+					idx = l
 				else:
 					idx = 0
-				if len(angle_actiions[current_level]) <= t+1:
+				if t+1 <= len(angle_actions[current_level]):
 					angle_action = angle_actions[current_level][t][idx]
 					if current_level not in taptime_actions:
 						taptime_action = valid_taptimes[k]
 					else:
 						taptime_action = taptime_actions[current_level][t][0]
 				else:
-					angle_actions[current_level][-1][-1]
-					taptime_actions[current_level][-1][-1]
+					angle_action = angle_actions[current_level][-1][-1]
+					taptime_action = taptime_actions[current_level][-1][-1]
 
 				dx = -max_mag * math.cos(math.radians(angle_action))
 				dy = max_mag * math.sin(math.radians(angle_action))
