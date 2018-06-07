@@ -1,6 +1,4 @@
-**/experiences_gathering/
-**/experiences/
-**/experiences_/
+**/experiences*/
 **/screenshots/
 *.class
 *.pyc

@@ -4,9 +4,9 @@ import tensorflow as tf
 import pdb
 
 class DQN_Estimator():
-    def __init__(self, scope="estimator", output_size=None, summaries_dir=None):
+    def __init__(self, scope="estimator", output_size=None, summaries_dir=None, angle_as_state = 0):
 
-        self.input_size = 4096
+        self.input_size = 4096 + angle_as_state
         self.hidden_size = [1024, 512]
         self.output_size = output_size
         self.learning_rate = 1e-4

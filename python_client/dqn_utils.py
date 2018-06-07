@@ -50,6 +50,7 @@ def make_epsilon_greedy_policy_parNN(estimator, nA):
         q_values = estimator.predict(sess, np.expand_dims(observation, 0))[0]
         best_action = np.argmax(q_values)
         A[best_action] += (1.0 - epsilon)
+        print(q_values, best_action)
         return A
     return policy_fn
 
@@ -184,6 +185,32 @@ def clear_screenshot(path):
     l = glob.glob(os.path.join(path, '*'))
     for f in l:
         os.remove(f)
+        
+def init_replaymemory_all(exp_path, current_dir, model_name):
+    import os, glob, pickle
+    replay_memory = []
+    for filename in glob.iglob("%s/*/*/s_?_*.png_seg.png"%(exp_path)):
+        next_state = os.path.abspath(filename)
+        if "PLAYING" in next_state:
+            game_state = "PLAYING"
+        elif "LOST" in next_state:
+            game_state = "LOST"
+        elif "WON" in next_state:
+            game_state = "WON"
+        else:
+            game_state = None
+            print("game_state error: None")
+        dir = os.path.dirname(next_state)
+        state = glob.glob("%s/s_?.png_seg.png"%dir)
+        action, reward= None, None
+        with open(os.path.join(dir, 'action'), 'rb') as f:
+            action = pickle.load(f)
+        with open(os.path.join(dir, 'reward'), 'rb') as f:
+            reward = pickle.load(f)
+        state = get_feature_4096(model=model_name, img_path=state[0])
+        next_state = get_feature_4096(model=model_name, img_path=next_state)
+        replay_memory.append([state, action, reward, next_state, game_state])
+    return replay_memory
 
 def init_replaymemory(angle_step, exp_path, current_dir, model_name):
     import os, glob, pickle
@@ -282,28 +309,44 @@ def pretrain(replay_memory, valid_angles, valid_taptimes, estimator, target_esti
     # return angle_loss, taptime_loss
     return loss
 
-def pretrain_parNN(replay_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size=6, discount_factor=0.99):
+def pretrain_parNN(replay_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size=6, discount_factor=0.99, angle_feed = False):
     samples = random.sample(replay_memory, batch_size)
     states_batch, action_batch, reward_batch, next_states_batch, game_state_batch = map(np.array, zip(*samples))
     reward_batch = np.clip(reward_batch/10000, 0, 6)
     # (1,1,4096) (1,2) (1,) (1,)
 
     done_batch = np.array([1 if (game_state =='LOST' or 'WON') else 0 for game_state in game_state_batch])
-
-    # angle_action_batch = np.array([action_batch[i][0] for i in range(batch_size)])
-    # taptime_action_batch = np.array([action_batch[i][1] for i in range(batch_size)])
-
     angle_action_batch_idx = np.array([valid_angles.index(action_batch[i][0]) for i in range(batch_size)])
     taptime_action_batch_idx = np.array([valid_taptimes.index(action_batch[i][1]) for i in range(batch_size)])
 
-    # 학습에 넣을 target reward 계산
+    # 학습에 넣을 target reward 계산 : angle
     angle_q_values_next = angle_estimator.predict(sess, next_states_batch)
     best_angle_actions = np.argmax(angle_q_values_next, axis=1)
-    taptime_q_values_next = taptime_estimator.predict(sess, next_states_batch)
+    # 현재의 angle action을 taptime state input으로 넣는다.
+    # 다음 state의 best_angle_action을 taptime next state input으로 넣는다.
+    if angle_feed:
+        current_angle_feed_batch = np.zeros((batch_size, len(valid_angles)), dtype = int)
+        next_angle_feed_batch = np.zeros((batch_size, len(valid_angles)), dtype = int)
+        for i in range(batch_size):
+            current_angle_feed_batch[i][angle_action_batch_idx[i]] = 1
+            next_angle_feed_batch[i][best_angle_actions[i]] = 1
+        taptime_states_batch = np.concatenate((states_batch, current_angle_feed_batch), axis = 1)
+        taptime_next_states_batch = np.concatenate((next_states_batch, next_angle_feed_batch), axis = 1)
+
+    # 학습에 넣을 target reward 계산 : taptime
+    if angle_feed:
+        taptime_q_values_next = taptime_estimator.predict(sess, taptime_next_states_batch)
+    else:
+        taptime_q_values_next = taptime_estimator.predict(sess, next_states_batch)
+    # taptime_q_values_next = taptime_estimator.predict(sess, next_states_batch)
     best_taptime_actions = np.argmax(taptime_q_values_next, axis=1)
 
     angle_q_values_next_target = angle_target_estimator.predict(sess, next_states_batch)
-    taptime_q_values_next_target = taptime_target_estimator.predict(sess, next_states_batch)
+    if angle_feed:
+        taptime_q_values_next_target = taptime_target_estimator.predict(sess, taptime_next_states_batch)
+    else:
+        taptime_q_values_next_target = taptime_target_estimator.predict(sess, next_states_batch)
+    # taptime_q_values_next_target = taptime_target_estimator.predict(sess, next_states_batch)
 
     angle_targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * \
         discount_factor * angle_q_values_next_target[np.arange(batch_size), best_angle_actions]
@@ -314,7 +357,12 @@ def pretrain_parNN(replay_memory, valid_angles, valid_taptimes, angle_estimator,
     # Perform gradient descent update
     states_batch = np.array(states_batch)
     angle_loss = angle_estimator.update(sess, states_batch, angle_action_batch_idx, angle_targets_batch)
-    taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
+    if angle_feed:
+        taptime_states_batch = np.array(taptime_states_batch)
+        taptime_loss = taptime_estimator.update(sess, taptime_states_batch, taptime_action_batch_idx, taptime_targets_batch)
+    else:
+        taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
+    # taptime_loss = taptime_estimator.update(sess, states_batch, taptime_action_batch_idx, taptime_targets_batch)
     return angle_loss, taptime_loss
 
 def init_oneshot_onekill(exp_path, current_dir, model_name):
