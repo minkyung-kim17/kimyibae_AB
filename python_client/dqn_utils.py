@@ -43,15 +43,19 @@ def make_epsilon_greedy_policy(estimator, nA):
         return angle_A, taptime_A
     return policy_fn
 
-def make_epsilon_greedy_policy_parNN(estimator, nA):
+def make_epsilon_greedy_policy_parNN(estimator, nA, soft=False):
 
     def policy_fn(sess, observation, epsilon):
         A = np.ones(nA, dtype=float) * epsilon / nA # action 수 만큼의 길이
         q_values = estimator.predict(sess, np.expand_dims(observation, 0))[0]
-        best_action = np.argmax(q_values)
-        A[best_action] += (1.0 - epsilon)
-        print(q_values, best_action)
-        return A
+        print(q_values)
+        if soft:
+            return q_values
+        else:
+            best_action = np.argmax(q_values)
+            A[best_action] += (1.0 - epsilon)
+            # print(q_values, best_action)
+            return A
     return policy_fn
 
 def get_feature_4096(model, img_path, need_crop = True, need_resize = True):
@@ -189,7 +193,12 @@ def clear_screenshot(path):
 def init_replaymemory_all(exp_path, current_dir, model_name):
     import os, glob, pickle
     replay_memory = []
+    i = 0
     for filename in glob.iglob("%s/*/*/s_?_*.png_seg.png"%(exp_path)):
+        i += 1
+        if i%300 == 0:
+            print(i)
+
         next_state = os.path.abspath(filename)
         if "PLAYING" in next_state:
             game_state = "PLAYING"
@@ -271,7 +280,7 @@ def init_replaymemory_WithAngleSet(angle_set, exp_path, current_dir, model_name)
             replay_memory.append([state, action, reward, next_state, game_state])
     return replay_memory
 
-def pretrain(replay_memory, valid_angles, valid_taptimes, estimator, target_estimator, sess, batch_size = 6, discount_factor = 0.99):
+def pretrain(replay_memory, valid_angles, valid_taptimes, estimator, target_estimator, sess, batch_size = 6, discount_factor = 0.7):
     samples = random.sample(replay_memory, batch_size)
     states_batch, action_batch, reward_batch, next_states_batch, game_state_batch = map(np.array, zip(*samples))
     reward_batch = np.clip(reward_batch/10000, 0, 6)
@@ -309,7 +318,7 @@ def pretrain(replay_memory, valid_angles, valid_taptimes, estimator, target_esti
     # return angle_loss, taptime_loss
     return loss
 
-def pretrain_parNN(replay_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size=6, discount_factor=0.99, angle_feed = False):
+def pretrain_parNN(replay_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size=6, discount_factor=0.7, angle_feed = False):
     samples = random.sample(replay_memory, batch_size)
     states_batch, action_batch, reward_batch, next_states_batch, game_state_batch = map(np.array, zip(*samples))
     reward_batch = np.clip(reward_batch/10000, 0, 6)
@@ -445,22 +454,33 @@ if __name__ == '__main__':
     # from multiprocessing import Pool
     from tensorflow.python.keras.applications.vgg16 import VGG16
 
-    # angles = get_valid_angles()
-    angles = [8,10,11,14,17,18,19,20,21,22,23,26,30,31,34,35,36,46,61,65,67,70,75]
 
     current_path = inspect.getfile(inspect.currentframe())
     current_dir = os.path.dirname(os.path.abspath(current_path))
-    EXP_PATH=os.path.join(current_dir,"experiences_gathering")
+    EXP_PATH=os.path.join(current_dir,"experiences_for_pickle")
     vgg16 = VGG16(weights= 'imagenet')
 
-    print('Populating replay memory...')
-    # pool = Pool(processes=3)
-    # pool.map(angles[:])
-    # pool.map(init_replaymemory_WithAngleSet, angles)
+    replay_memory = init_replaymemory_all(EXP_PATH, current_dir, vgg16)
 
-    replay_memory = init_replaymemory_WithAngleSet(angles, EXP_PATH, current_dir, vgg16)
-    # replay_memory = (angles, EXP_PATH, current_dir, vgg16)
-
-    with open(os.path.join(EXP_PATH, 'replay_memoryAll'), 'wb') as f:
+    with open(os.path.join(EXP_PATH, 'replay_memory_newAll'), 'wb') as f:
         pickle.dump(replay_memory, f)
     print('Done')
+
+    # angles = [8,10,11,14,17,18,19,20,21,22,23,26,30,31,34,35,36,46,61,65,67,70,75]
+
+    # current_path = inspect.getfile(inspect.currentframe())
+    # current_dir = os.path.dirname(os.path.abspath(current_path))
+    # EXP_PATH=os.path.join(current_dir,"experiences_gathering")
+    # vgg16 = VGG16(weights= 'imagenet')
+
+    # print('Populating replay memory...')
+    # # pool = Pool(processes=3)
+    # # pool.map(angles[:])
+    # # pool.map(init_replaymemory_WithAngleSet, angles)
+
+    # replay_memory = init_replaymemory_WithAngleSet(angles, EXP_PATH, current_dir, vgg16)
+    # # replay_memory = (angles, EXP_PATH, current_dir, vgg16)
+
+    # with open(os.path.join(EXP_PATH, 'replay_memoryAll'), 'wb') as f:
+    #     pickle.dump(replay_memory, f)
+    # print('Done')
