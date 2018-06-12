@@ -48,14 +48,14 @@ def make_epsilon_greedy_policy_parNN(estimator, nA, soft=False):
     def policy_fn(sess, observation, epsilon):
         A = np.ones(nA, dtype=float) * epsilon / nA # action 수 만큼의 길이
         q_values = estimator.predict(sess, np.expand_dims(observation, 0))[0]
-        print(q_values)
+        # print(q_values)
         if soft:
             return q_values
         else:
             best_action = np.argmax(q_values)
             A[best_action] += (1.0 - epsilon)
             # print(q_values, best_action)
-            return A
+            return q_values, A # 원래는 A만 있었음
     return policy_fn
 
 def get_feature_4096(model, img_path, need_crop = True, need_resize = True):
@@ -189,7 +189,7 @@ def clear_screenshot(path):
     l = glob.glob(os.path.join(path, '*'))
     for f in l:
         os.remove(f)
-        
+
 def init_replaymemory_all(exp_path, current_dir, model_name):
     import os, glob, pickle
     replay_memory = []
