@@ -290,7 +290,7 @@ def comm_fully_zoomout(s, silent=True):
 
 def comm_do_screenshot(s, save_path=None, silent=True):
 	# pdb.set_trace()
-	print('do_screenshot')
+	# print('do_screenshot')
 	try:
 		if not silent:
 			print ("\t[OPERATION]: do screenshot"),

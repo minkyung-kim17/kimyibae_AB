@@ -1,4 +1,4 @@
-import time
+import time, sys
 import numpy as np
 import random
 
@@ -164,9 +164,11 @@ def get_score_after_shot(current_dir, parser, comm_socket, start_score):
                 break
             time.sleep(1)
             sleepcount+=1
-            if sleepcount>=14:
+            if sleepcount>=15:
                 save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
                 end_image = comm.comm_do_screenshot(comm_socket, save_path=save_path)
+                print('over slept')
+                sys.stdout.flush()
                 break
 
         else: # last_score > score:

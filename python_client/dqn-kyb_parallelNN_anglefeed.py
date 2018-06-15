@@ -17,17 +17,17 @@ import dqn_utils
 import pdb
 
 # log 설정 ...
-dqn_logger = logging.getLogger("dqn_logger")
-# Debug < Info < Warning < Error < Critical
-dqn_logger.setLevel(logging.DEBUG)
-dqn_logger.addHandler(logging.StreamHandler())
-dqn_logger.addHandler(logging.FileHandler("dqn_logger.log"))
+# dqn_logger = logging.getLogger("dqn_logger")
+# # Debug < Info < Warning < Error < Critical
+# dqn_logger.setLevel(logging.DEBUG)
+# dqn_logger.addHandler(logging.StreamHandler())
+# dqn_logger.addHandler(logging.FileHandler("dqn_logger.log"))
 
 # path 설정 ...
 current_path = inspect.getfile(inspect.currentframe())
 current_dir = os.path.dirname(os.path.abspath(current_path))
 # EXP_PATH_gather=os.path.join(current_dir,"experiences_gathering")
-EXP_PATH=os.path.join(current_dir,"experiences_parNN_feed")
+EXP_PATH=os.path.join(current_dir,"experiences_parNN_feed_thread")
 PKL_PATH=os.path.join(current_dir,"pickle_files")
 SCR_PATH=os.path.join(current_dir,"screenshots")
 SUMM_PATH=os.path.join(current_dir, "tensorboard") # tf.summary dir
@@ -44,7 +44,7 @@ if not os.path.exists(SUMM_PATH):
 if not os.path.exists(SUMM_PATH):
 	os.mkdir(SUMM_PATH)
 
-checkpoint_dir = os.path.join(current_dir, "checkpoints_parNN_feed")
+checkpoint_dir = os.path.join(current_dir, "checkpoints_parNN_feed_thread")
 checkpoint_path = os.path.join(checkpoint_dir, "model") # checkpoint file path
 # checkpoint_path = os.path.join(checkpoint_dir, "model") # checkpoint file path
 
@@ -52,7 +52,8 @@ if not os.path.exists(checkpoint_dir):
 	os.makedirs(checkpoint_dir)
 
 # episode_prefix	= '%s/startAt_%s'%(EXP_PATH, time.strftime("%Y%m%d_%H%M"))
-run_start_dir = os.path.join(EXP_PATH, "startAt_%s"%time.strftime("%Y%m%d_%H%M"))
+start_time = time.strftime("%Y%m%d_%H%M")
+run_start_dir = os.path.join(EXP_PATH, "startAt_%s"%start_time)
 
 # while True:
 # 	pass
@@ -88,7 +89,7 @@ vgg16 = VGG16(weights= 'imagenet')
 # valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
 # valid_taptimes = list(range(500, 2501, 100))  # 500부터 2500까지 100씩 증가
 # valid_angles = [8, 10, 11, 14, 17, 18, 19, 20, 21, 22, 23, 26, 30, 31, 34, 35, 36, 46, 61, 65, 67, 70] # 55제외
-valid_angles = [8, 14, 17, 18, 19, 20, 21, 22, 23, 24, 26, 30, 31, 34, 35, 36, 46, 55, 61, 65, 67, 70, 75]
+valid_angles = [8, 14, 17, 18, 19, 20, 21, 22, 23, 24, 26, 30, 31, 34, 35, 36, 40, 46, 50, 55, 61, 65, 67, 70, 75]
 valid_taptimes = [600, 700, 900, 1000, 1100, 1200, 1300, 1500, 1600, 1700, 1800, 2000, 2500]
 
 # Create a global step variable
@@ -126,9 +127,9 @@ with tf.Session() as sess:
 	save_total_t = total_t #sess.run(tf.train.get_global_step()) # 아마도... int는 deep copy가 될거야
 
 	##
-	epsilon_start = 0.4 #1.0
+	epsilon_start = 1 #1.0
 	epsilon_end = 0.1
-	epsilon_decay_steps = 420000
+	epsilon_decay_steps = 1500000
 	epsilons = np.linspace(epsilon_start, epsilon_end, epsilon_decay_steps)
 
 	policy_angle = dqn_utils.make_epsilon_greedy_policy_parNN(
@@ -147,7 +148,8 @@ with tf.Session() as sess:
 	# 각 레벨별로, 0도부터 90도까지 쏜 데이터를 replay_memory로 함.
 	# pre_train을 넣어서, 이 replay_memory로 학습을 한 weight를 가져와서 시작하는 것도 고려.
 	batch_size = 50
-	discount_factor = 0.7
+	batch_size_playing = 6
+	discount_factor = 0.99
 	Transition = namedtuple("Transition", ["state", "action", "reward", "next_state", "game_state"])
 	replay_memory_size = 500000
 	print('Populating replay memory...')
@@ -161,14 +163,20 @@ with tf.Session() as sess:
 	# replay_memory = replay_memory_mk + replay_memory_sh + replay_memory_shlab
 	# np.save('replay_memory.npy', replay_memory)
 
+	new_memory = []
 	replay_memory = []
 	try:
-		replay_memory = np.load('replay_memory.npy').tolist()
+		replay_memory =np.load('replay_memory_latest_0614.npy').tolist() + np.load('replay_labcom.npy').tolist() +np.load('replay_memory_0614_labtop.npy').tolist()
+		memory_list = glob.glob('replay_memory_startAt_201806*.npy')
+		print("Loading replay memory with length(", len(replay_memory), ")")
+		sys.stdout.flush()
+		for memory in memory_list:
+			replay_memory = replay_memory + np.load(memory).tolist()
 	except:
 		pass
 
 	print("Loading replay memory with length(", len(replay_memory), ")")
-
+	sys.stdout.flush()
 	#####################
 	##### Checkpoint load
 	# pretrain_memory = dqn_utils.init_replaymemory(5, EXP_PATH, current_dir, vgg16)
@@ -190,28 +198,34 @@ with tf.Session() as sess:
 
 	def local_train(replay_memory, valid_angles, valid_taptimes,
 			angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor,
-			total_t, update_target_estimator_every, saver, checkpoint_path):
+			total_t, update_target_estimator_every, saver, checkpoint_path, save):
 		while True:
 			angle_loss, taptime_loss = dqn_utils.pretrain_parNN(replay_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator,
 				angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor, angle_feed = True)
 			total_t += 1 # 이 코드가 실행될 때, 불러온 checkpoint에서부터 계속 더하기 1을 해나감
 			# pdb.set_trace()
 			# total_t = sess.run(tf.train.get_global_step()) # 이렇게 total_t를 계산해야 main thread랑 sync가 맞을 것 같은데... 왜 자꾸 에러ㄷㄷ
-			if total_t % update_target_estimator_every == 0:
+			if total_t % update_target_estimator_every == 0 and save:
 				saver.save(sess, checkpoint_path)
 				dqn_utils.copy_model_parameters(sess, angle_estimator, angle_target_estimator)
 				dqn_utils.copy_model_parameters(sess, taptime_estimator, taptime_target_estimator)
-			# if total_t % (update_target_estimator_every*50) == 0:
 				# print("local_train || total_t:", total_t, "angle_loss:", angle_loss, "taptime_loss:", taptime_loss)
+			if total_t % (update_target_estimator_every*50) == 0:
+				print("local_train || total_t:", total_t, "angle_loss:", angle_loss, "taptime_loss:", taptime_loss)
+				sys.stdout.flush()
 				# print("replay_memory length:", len(replay_memory))
 
 	threads= []
 	import threading
-	num_threads=1
+	num_threads=3
 	for i in range(num_threads):
+		if i==0:
+			save = True
+		else:
+			save = False
 		t=threading.Thread(target=local_train, args=(replay_memory, valid_angles, valid_taptimes,
 			angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor,
-			total_t, update_target_estimator_every, saver, checkpoint_path))
+			total_t, update_target_estimator_every, saver, checkpoint_path, save))
 		threads.append(t)
 		t.start()
 
@@ -289,7 +303,7 @@ with tf.Session() as sess:
 			# else:
 			# 	current_level +=1
 
-			if current_level == 21 :#or lost_flag == 1:
+			if current_level == 18 :#or lost_flag == 1:
 				# lost_flag = 0
 				current_level = training_start_level
 			else:
@@ -362,7 +376,7 @@ with tf.Session() as sess:
 				# epsilon = epsilons[min(shot_idx, epsilon_decay_steps-1)]
 
 				print('Choose action from given Q network model with epsilon:', epsilon)
-
+				sys.stdout.flush()
 				# Add epsilon to Tensorboard
 				episode_summary = tf.Summary() # 수정:
 				episode_summary.value.add(simple_value=epsilon, tag="epsilon")
@@ -380,6 +394,40 @@ with tf.Session() as sess:
 				## 여기는 soft가 false일 때만 가능...
 				angle_q_values, angle_action_probs = policy_angle(sess, state, epsilon)
 				angle_action_idx = np.random.choice(np.arange(len(angle_action_probs)), p=angle_action_probs)
+
+				if current_level == 2 and i_episodes[1] <5:
+					angle_action_idx = 12
+				elif current_level == 3 and i_episodes[2] <5:
+					angle_action_idx = 5
+				elif (current_level==6) and i_episodes[5] < 15:
+					if t==0:
+						angle_action_idx = 6
+					elif t==1:
+						angle_action_idx = 12
+					elif t==2:
+						angle_action_idx = 5
+					elif t==3:
+						angle_action_idx = 11
+					else:
+						pass
+				elif current_level == 7 and i_episodes[6] < 15:
+					angle_action_idx = 9
+				elif current_level == 8 and i_episodes[7] < 15:
+					if t == 0:
+						angle_action_idx = 14
+					elif t ==1:
+						angle_action_idx = 16
+					else:
+						pass
+				elif current_level == 9 and i_episodes[8] < 15:
+					if t==0:
+						angle_action_idx = 10
+					elif t==1:
+						angle_action_idx = 11
+					else:
+						pass
+				else:
+					pass
 
 				angle_action_onehot = np.zeros(len(valid_angles), dtype = int)
 				angle_action_onehot[angle_action_idx] = 1
@@ -428,7 +476,7 @@ with tf.Session() as sess:
 				reward, new_score, next_screenshot_path, game_state = dqn_utils.get_score_after_shot(current_dir, wrapper, s, start_score)
 
 				print("Get reward from choosen action: reward: {}".format(reward), end="\n")
-
+				sys.stdout.flush()
 				screenshot_path = shot_dir+"/s_%d_%d_%d_%s.png"%(t+1, angle_action, taptime_action, game_state)
 				shutil.copy(next_screenshot_path, screenshot_path)
 				save_path = screenshot_path+"_seg.png"
@@ -445,12 +493,21 @@ with tf.Session() as sess:
 
 				# Save transition to replay memory
 				replay_memory.append(Transition(state, action, reward, next_state, game_state))
+				new_memory.append(Transition(state, action, reward, next_state, game_state))
+
 
 				# total_t = sess.run(tf.train.get_global_step())
-				if total_t > save_total_t + (update_target_estimator_every*50):
+				if game_state=='WON' or game_state=='LOST':
 					print("===numpy save===please wait===")
-					np.save('replay_memory.npy', replay_memory) # 저장을 쓰레드 안으로 옮김!
+					np.save('replay_memory_%s.npy'%(start_time), new_memory) # 저장을 쓰레드 안으로 옮김!
 					print('===numpy save===')
+					if len(new_memory) > 100:
+						print("new_memory length > 100 : make new npy file for the next time.")
+						sys.stdout.flush()
+						new_memory = []
+						start_time = time.strftime("%Y%m%d_%H%M")
+					sys.stdout.flush()
+				if total_t > save_total_t + (update_target_estimator_every*50):
 					save_total_t = sess.run(tf.train.get_global_step())
 
 				# Update statistics
@@ -462,8 +519,9 @@ with tf.Session() as sess:
 					stats.episode_lengths[current_level-1][-1] = (t+1)
 
 				# minibatch로 q network weight update
-				# if len(replay_memory) > batch_size:
-					# angle_loss, taptime_loss = dqn_utils.pretrain_parNN(replay_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor, angle_feed = True)
+
+				if len(new_memory) > batch_size_playing:
+					angle_loss, taptime_loss = dqn_utils.pretrain_parNN(new_memory, valid_angles, valid_taptimes, angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size_playing, discount_factor, angle_feed = True)
 					# samples = random.sample(replay_memory, batch_size)
 					# states_batch, action_batch, reward_batch, next_states_batch, game_state_batch = map(np.array, zip(*samples))
 					# reward_batch = np.clip(reward_batch/10000, 0, 6)
@@ -512,7 +570,7 @@ with tf.Session() as sess:
 				# shot_idx += 1
 
 			print('\nOne episode is done')
-
+			sys.stdout.flush()
 			# Add summaries to tensorboard
 			# episode_summary = tf.Summary() # 위에서 선언되어있었음
 			episode_summary.value.add(simple_value=stats.episode_rewards[current_level-1][-1], node_name="episode_reward_Level_%d"%(current_level), tag="episode_reward_Level_%d"%(current_level))
