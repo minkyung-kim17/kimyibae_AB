@@ -192,6 +192,42 @@ def clear_screenshot(path):
     for f in l:
         os.remove(f)
 
+def init_replaymemory_all_levels(exp_path, current_dir, model_name):
+    import os, glob, pickle
+    replay_memory = []
+    i = 0
+    for filename in glob.iglob("%s/*/*/s_?_*.png_seg.png"%(exp_path)):
+        i += 1
+        if i%300 == 0:
+            print(i)
+        level_onehot = np.zeros(21, dtype = int)
+        for j in range(21):
+            if "level{}_".format(j+1) in filename:
+                level_onehot[j] = 1
+                break
+
+        next_state = os.path.abspath(filename)
+        if "PLAYING" in next_state:
+            game_state = "PLAYING"
+        elif "LOST" in next_state:
+            game_state = "LOST"
+        elif "WON" in next_state:
+            game_state = "WON"
+        else:
+            game_state = None
+            print("game_state error: None")
+        dir = os.path.dirname(next_state)
+        state = glob.glob("%s/s_?.png_seg.png"%dir)
+        action, reward= None, None
+        with open(os.path.join(dir, 'action'), 'rb') as f:
+            action = pickle.load(f)
+        with open(os.path.join(dir, 'reward'), 'rb') as f:
+            reward = pickle.load(f)
+        state = np.concatenate((level_onehot, get_feature_4096(model=model_name, img_path=state[0])))
+        next_state = np.concatenate((level_onehot, get_feature_4096(model=model_name, img_path=next_state)))
+        replay_memory.append([state, action, reward, next_state, game_state])
+    return replay_memory
+
 def init_replaymemory_all(exp_path, current_dir, model_name):
     import os, glob, pickle
     replay_memory = []
@@ -459,13 +495,14 @@ if __name__ == '__main__':
 
     current_path = inspect.getfile(inspect.currentframe())
     current_dir = os.path.dirname(os.path.abspath(current_path))
-    EXP_PATH=os.path.join(current_dir,"experiences_for_pickle")
+    EXP_PATH=os.path.join(current_dir,"experiences_parNN_feed_thread")
     vgg16 = VGG16(weights= 'imagenet')
 
-    replay_memory = init_replaymemory_all(EXP_PATH, current_dir, vgg16)
+    replay_memory = init_replaymemory_all_levels(EXP_PATH, current_dir, vgg16)
 
-    with open(os.path.join(EXP_PATH, 'replay_memory_newAll'), 'wb') as f:
-        pickle.dump(replay_memory, f)
+    # with open(os.path.join(EXP_PATH, 'replay_memory_newAll'), 'wb') as f:
+    #     pickle.dump(replay_memory, f)
+    np.save('replay_memory_with_levels_0615', replay_memory)
     print('Done')
 
     # angles = [8,10,11,14,17,18,19,20,21,22,23,26,30,31,34,35,36,46,61,65,67,70,75]
