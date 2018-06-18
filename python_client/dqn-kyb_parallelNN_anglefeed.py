@@ -165,18 +165,33 @@ with tf.Session() as sess:
 
 	new_memory = []
 	replay_memory = []
+	memory_192021 = []
 	try:
 		replay_memory =np.load('replay_memory_latest_0614.npy').tolist() + np.load('replay_labcom.npy').tolist() +np.load('replay_memory_0614_labtop.npy').tolist()
-		memory_list = glob.glob('replay_memory_startAt_201806*.npy')
 		print("Loading replay memory with length(", len(replay_memory), ")")
 		sys.stdout.flush()
+
+		memory_list = glob.glob('replay_memory_startAt_201806*.npy')
 		for memory in memory_list:
 			replay_memory = replay_memory + np.load(memory).tolist()
+		print("Loading replay memory with length(", len(replay_memory), ")")
+		sys.stdout.flush()
+
+		memory_list = glob.glob('replay_memory_201806*.npy')
+		for memory in memory_list:
+			replay_memory = replay_memory + np.load(memory).tolist()
+		print("Loading replay memory with length(", len(replay_memory), ")")
+		sys.stdout.flush()
+
+
+		memory_list = glob.glob('192021_*.npy')
+		for memory in memory_list:
+			memory_192021 = memory_192021 + np.load(memory).tolist()
+		print("Loading replay memory with length(", len(memory_192021), ")")
+		sys.stdout.flush()
 	except:
 		pass
 
-	print("Loading replay memory with length(", len(replay_memory), ")")
-	sys.stdout.flush()
 	#####################
 	##### Checkpoint load
 	# pretrain_memory = dqn_utils.init_replaymemory(5, EXP_PATH, current_dir, vgg16)
@@ -221,11 +236,15 @@ with tf.Session() as sess:
 	for i in range(num_threads):
 		if i==0:
 			save = True
+			t=threading.Thread(target=local_train, args=(memory_192021, valid_angles, valid_taptimes,
+				angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor,
+				total_t, update_target_estimator_every, saver, checkpoint_path, save))
+			# threads.append(t)
 		else:
 			save = False
-		t=threading.Thread(target=local_train, args=(replay_memory, valid_angles, valid_taptimes,
-			angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor,
-			total_t, update_target_estimator_every, saver, checkpoint_path, save))
+			t=threading.Thread(target=local_train, args=(replay_memory, valid_angles, valid_taptimes,
+				angle_estimator, taptime_estimator, angle_target_estimator, taptime_target_estimator, sess, batch_size, discount_factor,
+				total_t, update_target_estimator_every, saver, checkpoint_path, save))
 		threads.append(t)
 		t.start()
 
@@ -255,7 +274,7 @@ with tf.Session() as sess:
 	# current_level = 1
 	# lost_flag = 0
 	# shot_idx = 0 # for epsilon
-	training_start_level = 1
+	training_start_level = 10
 	current_level = training_start_level
 	while True:
 
@@ -303,7 +322,7 @@ with tf.Session() as sess:
 			# else:
 			# 	current_level +=1
 
-			if current_level == 18 :#or lost_flag == 1:
+			if current_level == 10 :#or lost_flag == 1:
 				# lost_flag = 0
 				current_level = training_start_level
 			else:
@@ -392,50 +411,111 @@ with tf.Session() as sess:
 				# pdb.set_trace()
 
 				## 여기는 soft가 false일 때만 가능...
+
 				angle_q_values, angle_action_probs = policy_angle(sess, state, epsilon)
 				angle_action_idx = np.random.choice(np.arange(len(angle_action_probs)), p=angle_action_probs)
-
-				if current_level == 2 and i_episodes[1] <5:
-					angle_action_idx = 12
-				elif current_level == 3 and i_episodes[2] <5:
-					angle_action_idx = 5
-				elif (current_level==6) and i_episodes[5] < 15:
-					if t==0:
-						angle_action_idx = 6
+				#
+				# if current_level ==10:
+				# 	if t==0:
+				# 		angle_action_idx = 16
+				if current_level==20 and i_episodes[19]<10:
+					if t==0 :
+						angle_action_idx = 2
 					elif t==1:
-						angle_action_idx = 12
-					elif t==2:
 						angle_action_idx = 5
+					elif t==2:
+						angle_action_idx = 9
 					elif t==3:
-						angle_action_idx = 11
+						angle_action_idx = 9
 					else:
 						pass
-				elif current_level == 7 and i_episodes[6] < 15:
-					angle_action_idx = 9
-				elif current_level == 8 and i_episodes[7] < 15:
-					if t == 0:
-						angle_action_idx = 14
-					elif t ==1:
-						angle_action_idx = 16
-					else:
-						pass
-				elif current_level == 9 and i_episodes[8] < 15:
-					if t==0:
-						angle_action_idx = 10
+				if current_level==21 and i_episodes[20]<10:
+					if t==0 :
+						angle_action_idx = 3
 					elif t==1:
-						angle_action_idx = 11
+						angle_action_idx = 3
+					elif t==2:
+						angle_action_idx = 2
+					elif t==3:
+						angle_action_idx = 7
+					elif t==4:
+						angle_action_idx = 9
+					elif t==5:
+						angle_action_idx = 9
+					elif t==6:
+						angle_action_idx = 7
 					else:
 						pass
-				else:
-					pass
+				# if current_level == 2 and i_episodes[1] <5:
+				# 	angle_action_idx = 12
+				# elif current_level == 3 and i_episodes[2] <5:
+				# 	angle_action_idx = 5
+				# elif (current_level==6) and i_episodes[5] < 15:
+				# 	if t==0:
+				# 		angle_action_idx = 6
+				# 	elif t==1:
+				# 		angle_action_idx = 12
+				# 	elif t==2:
+				# 		angle_action_idx = 5
+				# 	elif t==3:
+				# 		angle_action_idx = 11
+				# 	else:
+				# 		pass
+				# elif current_level == 7 and i_episodes[6] < 15:
+				# 	angle_action_idx = 9
+				# elif current_level == 8 and i_episodes[7] < 15:
+				# 	if t == 0:
+				# 		angle_action_idx = 14
+				# 	elif t ==1:
+				# 		angle_action_idx = 16
+				# 	else:
+				# 		pass
+				# elif current_level == 9 and i_episodes[8] < 15:
+				# 	if t==0:
+				# 		angle_action_idx = 10
+				# 	elif t==1:
+				# 		angle_action_idx = 11
+				# 	else:
+				# 		pass
+				# else:
+				# 	pass
 
 				angle_action_onehot = np.zeros(len(valid_angles), dtype = int)
 				angle_action_onehot[angle_action_idx] = 1
 
 				taptime_q_values, taptime_action_probs = policy_taptime(sess, np.concatenate((state, angle_action_onehot)), epsilon)
 				taptime_action_idx = np.random.choice(np.arange(len(taptime_action_probs)), p=taptime_action_probs)
-
-
+				# if current_level ==10:
+				# 	if t==0:
+				# 		taptime_action_idx = 9
+				if current_level==20 and i_episodes[19]<10:
+					if t==0 :
+						taptime_action_idx = 4
+					elif t==1:
+						taptime_action_idx = 4
+					elif t==2:
+						taptime_action_idx = 9
+					elif t==3:
+						taptime_action_idx = 9
+					else:
+						pass
+				if current_level==21 and i_episodes[20]<10:
+					if t==0 :
+						taptime_action_idx = 4
+					elif t==1:
+						pass
+					elif t==2:
+						taptime_action_idx = 6
+					elif t==3:
+						taptime_action_idx = 7
+					elif t==4:
+						pass
+					elif t==5:
+						taptime_action_idx = 7
+					elif t==6:
+						taptime_action_idx = 7
+					else:
+						pass
 				## Take a step (현재 policy로 다음 action을 정함)
 				# angle_action_probs = policy_angle(sess, state, epsilon)
 				# angle_action_idx = np.random.choice(np.arange(len(angle_action_probs)), p=angle_action_probs)
@@ -473,8 +553,11 @@ with tf.Session() as sess:
 
 				# pdb.set_trace() ##
 
-				reward, new_score, next_screenshot_path, game_state = dqn_utils.get_score_after_shot(current_dir, wrapper, s, start_score)
 
+				if current_level in [1,2,3,4,5,6,7,8,12,17,18,19,20,21]:
+					reward, new_score, next_screenshot_path, game_state = dqn_utils.get_score_after_shot(current_dir, wrapper, s, start_score, fast=True)
+				else:
+					reward, new_score, next_screenshot_path, game_state = dqn_utils.get_score_after_shot(current_dir, wrapper, s, start_score)
 				print("Get reward from choosen action: reward: {}".format(reward), end="\n")
 				sys.stdout.flush()
 				screenshot_path = shot_dir+"/s_%d_%d_%d_%s.png"%(t+1, angle_action, taptime_action, game_state)

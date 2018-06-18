@@ -9,7 +9,8 @@ from tensorflow.python.keras.applications.vgg16 import VGG16
 # sys.path.append('../')
 import comm
 import wrapper_python as wrap
-import q_network
+# import q_network
+# import q_network_parallelNN_gpu as q_network_parallelNN
 import q_network_parallelNN
 import dqn_utils
 
@@ -28,7 +29,7 @@ model_type = 2
 # path 설정 ...
 current_path = inspect.getfile(inspect.currentframe())
 current_dir = os.path.dirname(os.path.abspath(current_path))
-EXP_PATH=os.path.join(current_dir,"experiences_parNN_feed")
+EXP_PATH=os.path.join(current_dir,"experiences_parNN_feed4gpu")
 SCR_PATH=os.path.join(current_dir,"screenshots")
 # SUMM_PATH=os.path.join(current_dir, "tensorboard-test") # test에서 tensorboard를 기록해야 하는가?
 
@@ -62,7 +63,7 @@ if model_type == 1:
 	# 우선 test에서는 학습을 안하도록 했음...
 elif model_type == 2:
 	# checkpoint_dir = os.path.join(current_dir, "checkpoints-parNN") # saver.restore 할때는 여기
-	checkpoint_dir = os.path.join(current_dir, "checkpoints_parNN_feed") # saver.restore 할때는 여기
+	checkpoint_dir = os.path.join(current_dir, "checkpoints_parNN_feed_thread_20180618_1116") # saver.restore 할때는 여기
 	# checkpoint_dir안에 checkpoint path 정보(directory name)도 바꿔줘야함
 
 if not os.path.exists(checkpoint_dir):
@@ -91,7 +92,7 @@ _,_,_ = comm.comm_configure(s, 1003)
 wrapper = wrap.WrapperPython('127.0.0.1')
 
 # initialize tensorflow session
-# tf.reset_default_graph()
+tf.reset_default_graph()
 
 # initialize feature extraction
 vgg16 = VGG16(weights= 'imagenet')
@@ -100,7 +101,8 @@ vgg16 = VGG16(weights= 'imagenet')
 # valid_angles = list(range(5, 86, 5)) # 5도부터 85도까지 5도씩 증가
 # valid_angles = dqn_utils.get_valid_angles()
 # valid_taptimes = list(range(500, 2501, 100))  # 500부터 2500까지 100씩 증가
-valid_angles = [8, 10, 11, 14, 17, 18, 19, 20, 21, 22, 23, 26, 30, 31, 34, 35, 36, 46, 61, 65, 67, 70] # 55제외
+valid_angles = [8, 14, 17, 18, 19, 20, 21, 22, 23, 24, 26, 30, 31, 34, 35, 36, 40, 46, 50, 55, 61, 65, 67, 70, 75]
+# [8, 10, 11, 14, 17, 18, 19, 20, 21, 22, 23, 26, 30, 31, 34, 35, 36, 46, 61, 65, 67, 70] # 55제외
 valid_taptimes = [600, 700, 900, 1000, 1100, 1200, 1300, 1500, 1600, 1700, 1800, 2000, 2500]
 
 # Create a global step variable # 일단 시작은 0이고, checkpoint를 불러오면 저장된 global_step이 들어오는건가...
@@ -123,7 +125,10 @@ stats = EpisodeStats( # level별 episode_length랑, episode_reward를 저장해 
         episode_rewards=[[] for i in range(21)])
 
 ##### Open tensorflow session
+# config = tf.ConfigProto(allow_soft_placement=True)
+# with tf.Session(config=config) as sess:
 with tf.Session() as sess:
+	# pdb.set_trace()
 	sess.run(tf.global_variables_initializer())
 
 	saver = tf.train.Saver()
@@ -170,8 +175,8 @@ with tf.Session() as sess:
 	# pre_train을 넣어서, 이 replay_memory로 학습을 한 weight를 가져와서 시작하는 것도 고려.
 
 	# test에서 학습 안하니까... 필요는 없는데...
-	batch_size = 6
-	discount_factor = 0.99
+	# batch_size = 6
+	# discount_factor = 0.99
 	Transition = namedtuple("Transition", ["state", "action", "reward", "next_state", "game_state"])
 	# replay_memory_size = 500000
 	# print('Populating replay memory...')
@@ -262,7 +267,7 @@ with tf.Session() as sess:
 			print ("########################################################")
 			print ("Won state")
 			current_level += 1
-			pdb.set_trace()
+			# pdb.set_trace()
 			comm.comm_load_level(s, current_level, silent=False)
 
 		elif game_state=='LOST':
@@ -272,7 +277,7 @@ with tf.Session() as sess:
 			print ("done...")
 			# break
 			# current_level += 1
-			pdb.set_trace()
+			# pdb.set_trace()
 			comm.comm_load_level(s, current_level, silent=False)
 
 		elif game_state=='PLAYING':
@@ -344,16 +349,16 @@ with tf.Session() as sess:
 				elif model_type == 2:
 					# angle_action_probs = policy_angle(sess, state, epsilon)
 					# taptime_action_probs = policy_taptime(sess, state, epsilon)
-					angle_action_probs = policy_angle(sess, state, epsilon)
+					# angle_action_probs = policy_angle(sess, state, epsilon)
+					angle_q_values, angle_action_probs = policy_angle(sess, state, epsilon)
 					angle_action_idx = np.random.choice(np.arange(len(angle_action_probs)), p=angle_action_probs)
-					pdb.set_trace()
+					# pdb.set_trace()
 					angle_action_onehot = np.zeros(len(valid_angles), dtype = int)
 					angle_action_onehot[angle_action_idx] = 1
 
-					taptime_action_probs = policy_taptime(sess, np.concatenate((state, angle_action_onehot)), epsilon)
+					taptime_q_values, taptime_action_probs = policy_taptime(sess, np.concatenate((state, angle_action_onehot)), epsilon)
+					# taptime_action_probs = policy_taptime(sess, np.concatenate((state, angle_action_onehot)), epsilon)
 					taptime_action_idx = np.random.choice(np.arange(len(taptime_action_probs)), p=taptime_action_probs)
-
-
 
 				# make shot for shooting
 				slingshot_rect = None
@@ -367,6 +372,7 @@ with tf.Session() as sess:
 				dy = max_mag * math.sin(math.radians(angle_action))
 				action = [angle_action, taptime_action]
 				print("Choose action: angle: {}, taptime: {}".format(angle_action, taptime_action), end="\n")
+				print("   with probs: angle: {}, taptime: {}".format(angle_q_values[angle_action_idx], taptime_q_values[taptime_action_idx]), end="\n")
 
 				# shoot
 				start_score = wrapper.get_score_in_game(screenshot_path)

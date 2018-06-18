@@ -112,7 +112,7 @@ def get_slingshot_refpoint(slingshot):
 	y = slingshot[1]+slingshot[2]*Y_OFFSET
 	return (x,y)
 
-def get_score_after_shot(current_dir, parser, comm_socket, start_score):
+def get_score_after_shot(current_dir, parser, comm_socket, start_score,fast = False):
     """
     Get score after shot.
 
@@ -132,6 +132,11 @@ def get_score_after_shot(current_dir, parser, comm_socket, start_score):
     screenshot = None
     last_score = start_score
     sleepcount = 0
+    if fast:
+        full_sleep = 6
+    else:
+        full_sleep = 15
+
     # Shooting is done. Check the score
     while True:
         # check the status of the screenshot
@@ -164,7 +169,7 @@ def get_score_after_shot(current_dir, parser, comm_socket, start_score):
                 break
             time.sleep(1)
             sleepcount+=1
-            if sleepcount>=15:
+            if sleepcount>=full_sleep:
                 save_path = "%s/screenshots/screenshot_%d.png" % (current_dir, int(time.time()*1000))
                 end_image = comm.comm_do_screenshot(comm_socket, save_path=save_path)
                 print('over slept')
